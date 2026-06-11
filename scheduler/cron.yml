@@ -39,13 +39,13 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           if [ -n "${{ github.event.inputs.trade_date }}" ]; then
-            python -c "
+            python3 -c "
           from compute import run
           from datetime import date
           run(date.fromisoformat('${{ github.event.inputs.trade_date }}'))
           "
           else
-            python compute.py
+            python3 compute.py
           fi
 
       - name: Notify on failure
