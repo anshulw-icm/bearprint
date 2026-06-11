@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bearprint — Market Breadth Index</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #ffffff;
+  --bg-2: #f5f5f7;
+  --bg-3: #e8e8ed;
+  --bg-card: rgba(255,255,255,0.72);
+  --ink: #1d1d1f;
+  --ink-2: #424245;
+  --ink-3: #6e6e73;
+  --ink-4: #aeaeb2;
+  --border: rgba(0,0,0,0.08);
+  --border-2: rgba(0,0,0,0.12);
+  --blue: #0066cc;
+  --blue-light: #e8f0fb;
+  --calm: #1c7a3d;
+  --calm-bg: #f0faf4;
+  --caution: #b45309;
+  --caution-bg: #fffbeb;
+  --crash: #c0392b;
+  --crash-bg: #fff5f5;
+  --radius-sm: 10px;
+  --radius: 18px;
+  --radius-lg: 24px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-2);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: 48px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid var(--border-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+}
+.nav-wordmark {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.025em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.nav-icon {
+  width: 26px; height: 26px;
+  background: var(--ink);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-icon svg { width: 14px; height: 14px; }
+.nav-right { display: flex; align-items: center; gap: 14px; }
+.nav-date {
+  font-size: 13px;
+  color: var(--ink-3);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.nav-pill {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--bg-3);
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.01em;
+}
+
+/* ── PAGE ── */
+.page { max-width: 980px; margin: 0 auto; padding: 52px 22px 100px; }
+
+/* ── SECTION EYEBROW ── */
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+/* ── HERO BLOCK ── */
+.hero {
+  background: var(--bg);
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.hero-top {
+  padding: 48px 48px 40px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 48px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .hero-top { grid-template-columns: 1fr; padding: 32px 28px; gap: 32px; }
+}
+.hero-kicker {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3);
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+}
+.hero-number {
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  margin-bottom: 16px;
+  transition: color 0.5s ease;
+}
+.hero-number.calm { color: var(--calm); }
+.hero-number.caution { color: var(--caution); }
+.hero-number.crash { color: var(--crash); }
+
+.signal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 13px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+.signal-chip.calm { background: var(--calm-bg); color: var(--calm); }
+.signal-chip.caution { background: var(--caution-bg); color: var(--caution); }
+.signal-chip.crash { background: var(--crash-bg); color: var(--crash); }
+.chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.hero-body {
+  font-size: 17px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  max-width: 440px;
+}
+
+/* RIGHT STATS COLUMN */
+.hero-stats { display: flex; flex-direction: column; gap: 10px; min-width: 180px; }
+.stat-tile {
+  background: var(--bg-2);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  text-align: right;
+}
+.stat-tile-val {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-tile-label {
+  font-size: 12px;
+  color: var(--ink-3);
+  letter-spacing: -0.01em;
+}
+
+/* METER STRIP */
+.meter-strip {
+  border-top: 0.5px solid var(--border);
+  padding: 20px 48px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+@media (max-width: 640px) { .meter-strip { padding: 16px 28px; } }
+.meter-track {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s cubic-bezier(0.4,0,0.2,1), background 0.5s;
+}
+.meter-fill.calm { background: var(--calm); }
+.meter-fill.caution { background: var(--caution); }
+.meter-fill.crash { background: var(--crash); }
+.meter-label { font-size: 12px; color: var(--ink-3); letter-spacing: -0.01em; white-space: nowrap; }
+.meter-label strong { color: var(--ink); font-weight: 500; }
+
+/* ── INSIGHT BANNER ── */
+.insight {
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  line-height: 1.65;
+  letter-spacing: -0.01em;
+  border: 0.5px solid transparent;
+  transition: background 0.4s, color 0.4s;
+}
+.insight.calm { background: var(--calm-bg); color: #14532d; border-color: rgba(28,122,61,0.15); }
+.insight.caution { background: var(--caution-bg); color: #92400e; border-color: rgba(180,83,9,0.15); }
+.insight.crash { background: var(--crash-bg); color: #9b1c1c; border-color: rgba(192,57,43,0.15); }
+.insight strong { font-weight: 600; }
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 16px; }
+@media (max-width: 640px) { .grid-3 { grid-template-columns: 1fr; } }
+
+/* ── CARD ── */
+.card {
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  padding: 24px;
+  overflow: hidden;
+}
+.card-head {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 16px;
+}
+.chart-wrap { position: relative; width: 100%; height: 200px; }
+
+/* CHART TABS */
+.chart-tabs { display: flex; gap: 0; background: var(--bg-2); border-radius: 8px; padding: 2px; margin-bottom: 14px; width: fit-content; }
+.ct-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink-3);
+  letter-spacing: -0.01em;
+  transition: all 0.15s;
+}
+.ct-btn.active { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+/* DONUT LEGEND */
+.donut-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.dl-item { display: flex; align-items: center; justify-content: space-between; }
+.dl-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); letter-spacing: -0.01em; }
+.dl-swatch { width: 8px; height: 8px; border-radius: 50%; }
+.dl-count { font-size: 13px; font-weight: 500; color: var(--ink); letter-spacing: -0.02em; }
+
+/* ── HISTORY TABLE ── */
+.table-card {
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.table-head-row {
+  padding: 14px 24px;
+  border-bottom: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.table-head-label { font-size: 12px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.07em; }
+.table-head-meta { font-size: 12px; color: var(--ink-4); }
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  text-align: left;
+  background: var(--bg-2);
+  border-bottom: 0.5px solid var(--border);
+}
+tbody tr { border-bottom: 0.5px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--bg-2); }
+td { padding: 12px 24px; font-size: 14px; color: var(--ink-2); letter-spacing: -0.01em; }
+td:first-child { color: var(--ink-3); font-size: 13px; }
+.td-num { font-size: 16px; font-weight: 600; letter-spacing: -0.03em; color: var(--ink); }
+.td-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.td-chip.calm { background: var(--calm-bg); color: var(--calm); }
+.td-chip.caution { background: var(--caution-bg); color: var(--caution); }
+.td-chip.crash { background: var(--crash-bg); color: var(--crash); }
+
+/* ── EXPLAINER ── */
+.explainer-card {
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  padding: 40px 48px;
+  margin-bottom: 16px;
+}
+@media (max-width: 640px) { .explainer-card { padding: 28px 24px; } }
+.explainer-card h2 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  margin-bottom: 14px;
+  color: var(--ink);
+}
+.explainer-card p {
+  font-size: 16px;
+  color: var(--ink-2);
+  line-height: 1.7;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+.formula-box {
+  background: var(--bg-2);
+  border-radius: var(--radius-sm);
+  padding: 18px 22px;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 15px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin: 24px 0;
+  border: 0.5px solid var(--border);
+}
+.zones-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 24px; }
+@media (max-width: 600px) { .zones-grid { grid-template-columns: 1fr; } }
+.zone-tile {
+  border-radius: var(--radius-sm);
+  padding: 18px;
+}
+.zone-tile.calm { background: var(--calm-bg); }
+.zone-tile.caution { background: var(--caution-bg); }
+.zone-tile.crash { background: var(--crash-bg); }
+.zone-range {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin-bottom: 4px;
+}
+.zone-tile.calm .zone-range { color: var(--calm); }
+.zone-tile.caution .zone-range { color: var(--caution); }
+.zone-tile.crash .zone-range { color: var(--crash); }
+.zone-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+.zone-tile.calm .zone-name { color: var(--calm); }
+.zone-tile.caution .zone-name { color: var(--caution); }
+.zone-tile.crash .zone-name { color: var(--crash); }
+.zone-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+.zone-tile.calm .zone-desc { color: #166534; }
+.zone-tile.caution .zone-desc { color: #92400e; }
+.zone-tile.crash .zone-desc { color: #9b1c1c; }
+
+/* ── FEEDBACK ── */
+.feedback-card {
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  padding: 40px 48px;
+  margin-bottom: 16px;
+}
+@media (max-width: 640px) { .feedback-card { padding: 28px 24px; } }
+.feedback-card h2 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+.feedback-card .sub {
+  font-size: 15px;
+  color: var(--ink-3);
+  margin-bottom: 28px;
+  letter-spacing: -0.01em;
+}
+.form-q {
+  margin-bottom: 24px;
+}
+.form-q-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+.radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.radio-opt {
+  padding: 7px 16px;
+  border: 1px solid var(--border-2);
+  border-radius: 20px;
+  font-size: 14px;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: -0.01em;
+  user-select: none;
+}
+.radio-opt:hover { border-color: rgba(0,0,0,0.24); }
+.radio-opt.sel { background: var(--ink); color: #fff; border-color: var(--ink); }
+.radio-opt input { display: none; }
+
+textarea {
+  width: 100%;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  resize: vertical;
+  min-height: 88px;
+  outline: none;
+  letter-spacing: -0.01em;
+  transition: border 0.15s;
+  -webkit-appearance: none;
+}
+textarea:focus { border-color: rgba(0,0,0,0.32); }
+
+.submit-btn {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: 980px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: opacity 0.15s;
+  -webkit-appearance: none;
+}
+.submit-btn:hover { opacity: 0.82; }
+
+.success-msg {
+  display: none;
+  margin-top: 14px;
+  padding: 14px 18px;
+  background: var(--calm-bg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--calm);
+  letter-spacing: -0.01em;
+  border: 0.5px solid rgba(28,122,61,0.18);
+}
+
+/* ── FOOTER ── */
+footer {
+  border-top: 0.5px solid var(--border-2);
+  padding: 28px 22px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-4);
+  letter-spacing: -0.01em;
+  line-height: 1.8;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-wordmark">
+    <div class="nav-icon">
+      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 1.5C4.515 1.5 2.5 3.515 2.5 6c0 1.38.6 2.62 1.55 3.47L2.5 12.5h9l-1.55-3.03A4.48 4.48 0 0 0 11.5 6c0-2.485-2.015-4.5-4.5-4.5z" fill="white"/>
+        <circle cx="5.5" cy="5.8" r="0.7" fill="#1d1d1f"/>
+        <circle cx="8.5" cy="5.8" r="0.7" fill="#1d1d1f"/>
+        <path d="M2.5 3.2C2.5 2.4 3.1 1.8 4 1.8" stroke="white" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M11.5 3.2C11.5 2.4 10.9 1.8 10 1.8" stroke="white" stroke-width="1" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    Bearprint
+  </div>
+  <div class="nav-right">
+    <span class="nav-date" id="nav-date">—</span>
+    <span class="nav-pill">POC v0.1</span>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <p class="hero-kicker">Today's market breadth</p>
+        <div class="hero-number caution" id="hero-num">—</div>
+        <div class="signal-chip caution" id="signal-chip">
+          <span class="chip-dot"></span>
+          <span id="chip-text">—</span>
+        </div>
+        <p class="hero-body" id="hero-body">Computing signal...</p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-tile">
+          <div class="stat-tile-val" id="stat-avg">—</div>
+          <div class="stat-tile-label">7-day average</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile-val" id="stat-losers">—</div>
+          <div class="stat-tile-label">stocks closed red</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile-val" id="stat-streak">—</div>
+          <div class="stat-tile-label">days in zone</div>
+        </div>
+      </div>
+    </div>
+    <div class="meter-strip">
+      <span class="meter-label">0 · Calm</span>
+      <div class="meter-track">
+        <div class="meter-fill caution" id="meter" style="width:0%"></div>
+      </div>
+      <span class="meter-label">100 · Crash</span>
+      <span class="meter-label" id="meter-pct" style="min-width:38px;text-align:right;"><strong>—</strong></span>
+    </div>
+  </div>
+
+  <!-- INSIGHT -->
+  <div class="insight caution" id="insight">Computing signal...</div>
+
+  <!-- CHARTS -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head">Bearprint trend</div>
+      <div class="chart-tabs">
+        <button class="ct-btn active" onclick="switchTab('bp',this)">30 days</button>
+        <button class="ct-btn" onclick="switchTab('overlay',this)">vs Nifty</button>
+      </div>
+      <div class="chart-wrap"><canvas id="mainChart" role="img" aria-label="Bearprint index over 30 trading days"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">Zone breakdown · 30 days</div>
+      <div class="chart-wrap" style="height:170px;margin-top:4px;">
+        <canvas id="zoneChart" role="img" aria-label="Donut chart of calm, caution, crash day distribution over 30 days"></canvas>
+      </div>
+      <div class="donut-legend" id="donut-legend"></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-head-row">
+      <span class="table-head-label">Signal history</span>
+      <span class="table-head-meta">Last 14 trading days</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Bearprint</th>
+            <th>Stocks red</th>
+            <th>7d avg</th>
+            <th>Zone</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EXPLAINER -->
+  <div class="explainer-card">
+    <p class="eyebrow">About the index</p>
+    <h2>What is Bearprint?</h2>
+    <p>Bearprint is a market breadth index that measures how widespread losses are across the Nifty 500 on any given trading day. Rather than tracking how much the market fell, it tracks how many stocks fell.</p>
+    <p>When the headline index drops 1%, it could be driven by two large-caps. Bearprint cuts through that noise — a reading of 68 means 68% of all tracked stocks closed red. That's a very different picture.</p>
+    <div class="formula-box">Bearprint = (stocks closing below previous close ÷ 500) × 100</div>
+    <p>Rising Bearprint over consecutive sessions often signals broad market deterioration — sometimes before the Nifty 50 visibly reflects it.</p>
+    <div class="zones-grid">
+      <div class="zone-tile calm">
+        <div class="zone-range">0–44</div>
+        <div class="zone-name">Calm</div>
+        <div class="zone-desc">Normal conditions. Majority of stocks holding their ground.</div>
+      </div>
+      <div class="zone-tile caution">
+        <div class="zone-range">45–64</div>
+        <div class="zone-name">Caution</div>
+        <div class="zone-desc">Breadth deteriorating. Worth reviewing unhedged positions.</div>
+      </div>
+      <div class="zone-tile crash">
+        <div class="zone-range">65–100</div>
+        <div class="zone-name">Crash zone</div>
+        <div class="zone-desc">Widespread losses. Consider protection before the crowd does.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div class="feedback-card">
+    <h2>Shape what comes next</h2>
+    <p class="sub">This is a concept in progress. Three honest questions.</p>
+
+    <div class="form-q">
+      <p class="form-q-label">Did today's signal feel useful?</p>
+      <div class="radio-group" id="rg1">
+        <label class="radio-opt" onclick="pick(this,'rg1')"><input type="radio" name="q1" value="yes"> Yes, I'd act on this</label>
+        <label class="radio-opt" onclick="pick(this,'rg1')"><input type="radio" name="q1" value="maybe"> Maybe, need more context</label>
+        <label class="radio-opt" onclick="pick(this,'rg1')"><input type="radio" name="q1" value="no"> Not really</label>
+      </div>
+    </div>
+
+    <div class="form-q">
+      <p class="form-q-label">If Bearprint hit 75, what would you do?</p>
+      <div class="radio-group" id="rg2">
+        <label class="radio-opt" onclick="pick(this,'rg2')"><input type="radio" name="q2" value="hedge"> Move to gold or liquid funds</label>
+        <label class="radio-opt" onclick="pick(this,'rg2')"><input type="radio" name="q2" value="hold"> Hold and watch</label>
+        <label class="radio-opt" onclick="pick(this,'rg2')"><input type="radio" name="q2" value="sell"> Reduce equity exposure</label>
+        <label class="radio-opt" onclick="pick(this,'rg2')"><input type="radio" name="q2" value="nothing"> Nothing — I don't trust signals</label>
+      </div>
+    </div>
+
+    <div class="form-q">
+      <p class="form-q-label">What would make you trust this? <span style="color:var(--ink-3);font-weight:400;">(optional)</span></p>
+      <textarea id="q3" placeholder="Be direct — this goes straight to the people building it..."></textarea>
+    </div>
+
+    <button class="submit-btn" onclick="submit()">Send feedback</button>
+    <div class="success-msg" id="success">
+      Received — thank you. This kind of early feedback is exactly what determines whether Bearprint becomes a real product.
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Bearprint · Market breadth index for Nifty 500<br>
+  Data is simulated for research and concept validation · Not financial advice<br>
+  POC v0.1 · Built to validate the idea, not to trade on it
+</footer>
+
+<script>
+// ── API CONFIG ────────────────────────────────────────────────────────────────
+// Point this to your Render.com backend URL after deployment.
+// Example: const API = "https://bearprint-api.onrender.com";
+const API = window.BEARPRINT_API || "https://bearprint-api.onrender.com";
+
+// ── LOADING STATE ─────────────────────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('hero-num').textContent = '—';
+  document.getElementById('insight').textContent  = 'Loading live data...';
+}
+
+function showError(msg) {
+  document.getElementById('insight').className = 'insight caution';
+  document.getElementById('insight').innerHTML = `<strong>Could not load live data.</strong> ${msg} — showing cached seed data instead.`;
+}
+
+// ── DATA NORMALISER ───────────────────────────────────────────────────────────
+// Converts API response shape into the internal shape the render functions expect.
+function normaliseRow(r) {
+  return {
+    bp:     parseFloat(r.bp_value),
+    losers: r.losers,
+    total:  r.total,
+    zone:   r.zone,
+    avg:    parseFloat(r.avg_7d),
+    label:  new Date(r.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' }),
+  };
+}
+
+// ── FETCH FROM API ────────────────────────────────────────────────────────────
+async function loadData() {
+  showLoading();
+  try {
+    const [todayRes, histRes] = await Promise.all([
+      fetch(`${API}/today`),
+      fetch(`${API}/history?days=30`),
+    ]);
+
+    if (!todayRes.ok) throw new Error(`/today returned ${todayRes.status}`);
+    if (!histRes.ok)  throw new Error(`/history returned ${histRes.status}`);
+
+    const todayJson = await todayRes.json();
+    const histJson  = await histRes.json();
+
+    const TODAY = normaliseRow(todayJson);
+    const D30   = histJson.data.map(normaliseRow);
+    const D14   = D30.slice(-14);
+
+    return { TODAY, D30, D14 };
+
+  } catch (err) {
+    console.warn('API fetch failed, using seed data:', err.message);
+    showError(err.message);
+    return null;   // caller will use seed data fallback
+  }
+}
+
+// ── SEED FALLBACK (shown if API is unreachable) ───────────────────────────────
+function seedData() {
+  const raw = [
+    { bp_value:24.4, losers:122, total:500, zone:'calm',    avg_7d:24.4, date: daysAgo(29) },
+    { bp_value:31.2, losers:156, total:500, zone:'calm',    avg_7d:27.8, date: daysAgo(28) },
+    { bp_value:28.0, losers:140, total:500, zone:'calm',    avg_7d:27.9, date: daysAgo(27) },
+    { bp_value:35.6, losers:178, total:500, zone:'calm',    avg_7d:29.8, date: daysAgo(26) },
+    { bp_value:22.8, losers:114, total:500, zone:'calm',    avg_7d:28.4, date: daysAgo(25) },
+    { bp_value:41.0, losers:205, total:500, zone:'calm',    avg_7d:30.5, date: daysAgo(24) },
+    { bp_value:38.4, losers:192, total:500, zone:'calm',    avg_7d:31.6, date: daysAgo(23) },
+    { bp_value:67.2, losers:336, total:500, zone:'crash',   avg_7d:36.9, date: daysAgo(22) },
+    { bp_value:72.8, losers:364, total:500, zone:'crash',   avg_7d:43.9, date: daysAgo(21) },
+    { bp_value:71.0, losers:355, total:500, zone:'crash',   avg_7d:46.8, date: daysAgo(20) },
+    { bp_value:68.4, losers:342, total:500, zone:'crash',   avg_7d:52.7, date: daysAgo(19) },
+    { bp_value:74.2, losers:371, total:500, zone:'crash',   avg_7d:57.6, date: daysAgo(18) },
+    { bp_value:65.6, losers:328, total:500, zone:'crash',   avg_7d:62.7, date: daysAgo(17) },
+    { bp_value:58.8, losers:294, total:500, zone:'caution', avg_7d:65.4, date: daysAgo(16) },
+    { bp_value:44.2, losers:221, total:500, zone:'calm',    avg_7d:64.9, date: daysAgo(15) },
+    { bp_value:38.6, losers:193, total:500, zone:'calm',    avg_7d:60.4, date: daysAgo(14) },
+    { bp_value:32.0, losers:160, total:500, zone:'calm',    avg_7d:56.9, date: daysAgo(13) },
+    { bp_value:29.4, losers:147, total:500, zone:'calm',    avg_7d:48.9, date: daysAgo(12) },
+    { bp_value:27.2, losers:136, total:500, zone:'calm',    avg_7d:42.3, date: daysAgo(11) },
+    { bp_value:33.8, losers:169, total:500, zone:'calm',    avg_7d:37.7, date: daysAgo(10) },
+    { bp_value:19.6, losers:98,  total:500, zone:'calm',    avg_7d:32.1, date: daysAgo(9)  },
+    { bp_value:22.4, losers:112, total:500, zone:'calm',    avg_7d:29.5, date: daysAgo(8)  },
+    { bp_value:47.0, losers:235, total:500, zone:'caution', avg_7d:30.2, date: daysAgo(7)  },
+    { bp_value:53.6, losers:268, total:500, zone:'caution', avg_7d:33.3, date: daysAgo(6)  },
+    { bp_value:61.2, losers:306, total:500, zone:'caution', avg_7d:38.2, date: daysAgo(5)  },
+    { bp_value:58.4, losers:292, total:500, zone:'caution', avg_7d:45.1, date: daysAgo(4)  },
+    { bp_value:63.8, losers:319, total:500, zone:'caution', avg_7d:47.1, date: daysAgo(3)  },
+    { bp_value:55.2, losers:276, total:500, zone:'caution', avg_7d:51.6, date: daysAgo(2)  },
+    { bp_value:49.6, losers:248, total:500, zone:'caution', avg_7d:52.5, date: daysAgo(1)  },
+    { bp_value:52.4, losers:262, total:500, zone:'caution', avg_7d:56.3, date: daysAgo(0)  },
+  ];
+  const D30   = raw.map(normaliseRow);
+  const D14   = D30.slice(-14);
+  const TODAY = D30[D30.length - 1];
+  return { TODAY, D30, D14 };
+}
+
+function daysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return d.toISOString().split('T')[0];
+}
+
+let ALL_DATA = null;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const ZONE_COLORS = { calm: '#1c7a3d', caution: '#b45309', crash: '#c0392b' };
+const ZONE_LABELS = { calm: 'Calm', caution: 'Caution', crash: 'Crash zone' };
+
+function zoneClass(bp) { return bp >= 65 ? 'crash' : bp >= 45 ? 'caution' : 'calm'; }
+
+function getInsight(bp, avg) {
+  if (bp >= 65) return `<strong>Crash zone.</strong> ${bp}% of Nifty 500 stocks closed red today — broad market pain, not just a few large-caps dragging the index. Seven-day average is ${avg}. If you're holding unhedged equity, this is the signal to act on.`;
+  if (bp >= 45) return `<strong>Caution signal.</strong> ${bp}% of stocks closed red — breadth is deteriorating. Seven-day average sits at ${avg}. Not a full crash, but a pattern worth taking seriously before it becomes one.`;
+  return `<strong>Market healthy.</strong> Only ${bp}% of Nifty 500 stocks closed red today. Breadth is strong, seven-day average at ${avg}. No action needed — but Bearprint keeps watching so you don't have to.`;
+}
+
+// ── RENDER HERO ───────────────────────────────────────────────────────────────
+function renderHero(TODAY, D30) {
+  const z = zoneClass(TODAY.bp);
+  const prev = D30[D30.length - 2];
+  const diff = prev ? Math.round((TODAY.bp - prev.bp) * 10) / 10 : 0;
+  const trendTxt = diff > 0 ? `↑ ${diff} pts from yesterday` : diff < 0 ? `↓ ${Math.abs(diff)} pts from yesterday` : 'unchanged from yesterday';
+
+  let streak = 1;
+  for (let i = D30.length - 2; i >= 0; i--) { if (zoneClass(D30[i].bp) === z) streak++; else break; }
+
+  document.getElementById('nav-date').textContent = TODAY.label + ' · ' + trendTxt;
+  document.getElementById('hero-num').textContent = TODAY.bp;
+  document.getElementById('hero-num').className = `hero-number ${z}`;
+
+  const chip = document.getElementById('signal-chip');
+  chip.className = `signal-chip ${z}`;
+  document.getElementById('chip-text').textContent = ZONE_LABELS[z];
+  document.getElementById('hero-body').textContent = `${TODAY.losers} of ${TODAY.total} Nifty stocks closed below their previous price today.`;
+
+  document.getElementById('stat-avg').textContent = TODAY.avg;
+  document.getElementById('stat-losers').textContent = TODAY.losers;
+  document.getElementById('stat-streak').textContent = streak + 'd';
+
+  document.getElementById('meter').style.width = TODAY.bp + '%';
+  document.getElementById('meter').className = `meter-fill ${z}`;
+  document.getElementById('meter-pct').innerHTML = `<strong>${TODAY.bp}</strong>`;
+
+  const ins = document.getElementById('insight');
+  ins.className = `insight ${z}`;
+  ins.innerHTML = getInsight(TODAY.bp, TODAY.avg);
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+let mainChart = null;
+let currentD30 = [];
+
+function buildMain(type, D30) {
+  if (D30) currentD30 = D30;
+  const data = currentD30;
+  const labels = data.map(r => r.label);
+  let datasets;
+
+  if (type === 'bp') {
+    const ptColors = data.map(r => ZONE_COLORS[r.zone]);
+    datasets = [
+      { label: 'Bearprint', data: data.map(r => r.bp), borderColor: '#1d1d1f', borderWidth: 1.5, pointRadius: 3.5, pointBackgroundColor: ptColors, pointBorderColor: ptColors, tension: 0.35, fill: false },
+      { label: '7-day avg', data: data.map(r => r.avg), borderColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderDash: [5, 3], pointRadius: 0, tension: 0.35, fill: false }
+    ];
+  } else {
+    const nifty = data.map(r => Math.min(100, Math.max(0, Math.round(100 - r.bp + ((Math.sin(r.bp) * 4))))));
+    datasets = [
+      { label: 'Nifty 50 (normalised)', data: nifty, borderColor: '#0066cc', borderWidth: 1.5, borderDash: [5, 3], pointRadius: 0, tension: 0.35, fill: false },
+      { label: 'Bearprint', data: data.map(r => r.bp), borderColor: '#c0392b', borderWidth: 1.5, pointRadius: 0, tension: 0.35, fill: false }
+    ];
+  }
+
+  if (mainChart) mainChart.destroy();
+  mainChart = new Chart(document.getElementById('mainChart'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 350 },
+      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { label: ctx => ctx.dataset.label === '7-day avg' ? null : ` ${ctx.dataset.label}: ${ctx.parsed.y}` } } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 7, autoSkip: true, font: { size: 11, family: '-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif' }, color: '#6e6e73' }, grid: { display: false }, border: { display: false } },
+        y: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 11, family: '-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif' }, color: '#6e6e73' }, grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false } }
+      }
+    }
+  });
+}
+
+function switchTab(type, btn) {
+  document.querySelectorAll('.ct-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildMain(type);
+}
+
+function buildDonut(D30) {
+  const calm    = D30.filter(r => r.zone === 'calm').length;
+  const caution = D30.filter(r => r.zone === 'caution').length;
+  const crash   = D30.filter(r => r.zone === 'crash').length;
+
+  new Chart(document.getElementById('zoneChart'), {
+    type: 'doughnut',
+    data: { labels: ['Calm', 'Caution', 'Crash zone'], datasets: [{ data: [calm, caution, crash], backgroundColor: ['#1c7a3d', '#b45309', '#c0392b'], borderWidth: 0, hoverOffset: 3 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} days` } } }, cutout: '68%' }
+  });
+
+  const leg = document.getElementById('donut-legend');
+  leg.innerHTML = '';
+  [['Calm', calm, '#1c7a3d'], ['Caution', caution, '#b45309'], ['Crash zone', crash, '#c0392b']].forEach(([l, c, col]) => {
+    leg.innerHTML += `<div class="dl-item"><div class="dl-left"><div class="dl-swatch" style="background:${col}"></div>${l}</div><div class="dl-count">${c} days</div></div>`;
+  });
+}
+
+function buildTable(D14) {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  [...D14].reverse().forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.label}</td><td><span class="td-num">${r.bp}</span></td><td>${r.losers}</td><td>${r.avg}</td><td><span class="td-chip ${r.zone}">${ZONE_LABELS[r.zone]}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── FEEDBACK ──────────────────────────────────────────────────────────────────
+function pick(el, groupId) {
+  document.querySelectorAll(`#${groupId} .radio-opt`).forEach(r => r.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+async function submit() {
+  const q1 = document.querySelector('input[name="q1"]:checked')?.value || '';
+  const q2 = document.querySelector('input[name="q2"]:checked')?.value || '';
+  const q3 = document.getElementById('q3')?.value || '';
+  if (!q1 && !q2) { alert('Please answer at least one question.'); return; }
+
+  const currentBP = ALL_DATA?.TODAY?.bp || null;
+
+  try {
+    await fetch(`${API}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q1, q2, q3, bp_at_time: currentBP }),
+    });
+  } catch (e) {
+    console.warn('Feedback save failed (offline?):', e.message);
+  }
+
+  document.getElementById('success').style.display = 'block';
+  document.querySelector('.submit-btn').style.opacity = '0.4';
+  document.querySelector('.submit-btn').disabled = true;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init() {
+  const live = await loadData();
+  ALL_DATA = live || seedData();
+
+  const { TODAY, D30, D14 } = ALL_DATA;
+  renderHero(TODAY, D30);
+  buildMain('bp', D30);
+  buildDonut(D30);
+  buildTable(D14);
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: bearprint-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        sync: false        # paste your Supabase project URL here in Render dashboard
+      - key: SUPABASE_KEY
+        sync: false        # paste your Supabase anon key here in Render dashboard
+    plan: free
+    healthCheckPath: /health
