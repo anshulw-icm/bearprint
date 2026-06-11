@@ -1,4 +1,4 @@
-import os, io, csv, zipfile
+import os, io, csv
 import requests
 from datetime import date, timedelta
 
@@ -25,28 +25,23 @@ def db(method, path, **kwargs):
 
 def fetch_bhavcopy(trade_date: date):
     date_fmt = trade_date.strftime("%d%m%Y")
-    url = (
-        f"https://nsearchives.nseindia.com/content/cm/"
-        f"BhavCopy_NSE_CM_0_0_0_{date_fmt}_F_0000.csv.zip"
-    )
+    url = f"https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date_fmt}.csv"
     print(f"Fetching: {url}")
     r = requests.get(url, headers=NSE_HEADERS, timeout=30)
     r.raise_for_status()
-    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-        csv_name = [n for n in z.namelist() if n.endswith(".csv")][0]
-        content = z.open(csv_name).read().decode("utf-8")
-    rows = list(csv.DictReader(io.StringIO(content)))
+    rows = list(csv.DictReader(io.StringIO(r.text)))
+    rows = [{k.strip(): v.strip() for k, v in row.items()} for row in rows]
     print(f"  Loaded {len(rows)} rows")
     return rows
 
 def compute_bearprint(rows):
     total = losers = 0
     for r in rows:
-        if r.get("SctySrs", "").strip() != "EQ":
+        if r.get("SERIES", "").strip() != "EQ":
             continue
         try:
-            prev = float(r.get("PrvsClsgPric") or 0)
-            close = float(r.get("ClsPric") or 0)
+            prev  = float(r.get("PREV_CLOSE") or 0)
+            close = float(r.get("CLOSE_PRICE") or 0)
             if prev <= 0:
                 continue
             total += 1
