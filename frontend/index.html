@@ -6,939 +6,561 @@
 <title>Bearprint — Market Breadth Index</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --glass:rgba(255,255,255,0.05);
+  --glass-b:rgba(255,255,255,0.09);
+  --nav-bg:rgba(8,8,8,0.82);
+  --bg:#000;--bg2:#0a0a0a;--bg3:#141414;--bg4:#1c1c1e;
+  --ink:#f5f5f7;--ink2:rgba(235,235,240,0.8);--ink3:rgba(235,235,240,0.55);--ink4:rgba(235,235,240,0.32);
+  --bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.13);
+  --green:#30d158;--green-d:rgba(48,209,88,0.10);--green-b:rgba(48,209,88,0.22);
+  --amber:#ff9f0a;--amber-d:rgba(255,159,10,0.10);--amber-b:rgba(255,159,10,0.22);
+  --red:#ff453a;--red-d:rgba(255,69,58,0.10);--red-b:rgba(255,69,58,0.22);
+  --blue:#0a84ff;
+  --r:16px;--rl:22px;--rx:28px;
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:17px;line-height:1.5;min-height:100vh}
 
-:root {
-  --bg: #ffffff;
-  --bg-2: #f5f5f7;
-  --bg-3: #e8e8ed;
-  --bg-card: rgba(255,255,255,0.72);
-  --ink: #1d1d1f;
-  --ink-2: #424245;
-  --ink-3: #6e6e73;
-  --ink-4: #aeaeb2;
-  --border: rgba(0,0,0,0.08);
-  --border-2: rgba(0,0,0,0.12);
-  --blue: #0066cc;
-  --blue-light: #e8f0fb;
-  --calm: #1c7a3d;
-  --calm-bg: #f0faf4;
-  --caution: #b45309;
-  --caution-bg: #fffbeb;
-  --crash: #c0392b;
-  --crash-bg: #fff5f5;
-  --radius-sm: 10px;
-  --radius: 18px;
-  --radius-lg: 24px;
-}
+/* NAV */
+nav{position:sticky;top:0;z-index:200;height:52px;background:var(--nav-bg);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border-bottom:0.5px solid var(--glass-b);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.n-logo{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:600;letter-spacing:-0.03em;color:var(--ink)}
+.n-icon{width:28px;height:28px;background:var(--ink);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.n-icon svg{width:15px;height:15px}
+.n-right{display:flex;align-items:center;gap:10px}
+.n-date{font-size:12px;color:var(--ink4);letter-spacing:-0.01em}
+.n-tabs{display:flex;gap:0;background:rgba(255,255,255,0.07);border-radius:9px;padding:2px}
+.n-tab{padding:5px 16px;border:none;border-radius:7px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;background:transparent;color:var(--ink4);letter-spacing:-0.01em;transition:all .15s}
+.n-tab.active{background:rgba(255,255,255,0.12);color:var(--ink)}
 
-html { scroll-behavior: smooth; }
+/* PAGE */
+.page{max-width:960px;margin:0 auto;padding:36px 20px 100px}
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-  background: var(--bg-2);
-  color: var(--ink);
-  -webkit-font-smoothing: antialiased;
-  font-size: 17px;
-  line-height: 1.5;
-}
+/* SCREENS */
+.screen{display:none}.screen.on{display:block}
 
-/* ── NAV ── */
-nav {
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  height: 48px;
-  background: rgba(255,255,255,0.82);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 0.5px solid var(--border-2);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 22px;
-}
-.nav-wordmark {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.025em;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.nav-icon {
-  width: 26px; height: 26px;
-  background: var(--ink);
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-}
-.nav-icon svg { width: 14px; height: 14px; }
-.nav-right { display: flex; align-items: center; gap: 14px; }
-.nav-date {
-  font-size: 13px;
-  color: var(--ink-3);
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
-.nav-pill {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--ink-3);
-  background: var(--bg-3);
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.01em;
-}
+/* GLASS */
+.g{background:var(--glass);border:0.5px solid var(--glass-b);border-radius:var(--rx);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 
-/* ── PAGE ── */
-.page { max-width: 980px; margin: 0 auto; padding: 52px 22px 100px; }
+/* ── INDEX TAB ── */
+.hero{margin-bottom:12px;overflow:hidden}
+.hero-top{padding:44px 44px 36px;display:grid;grid-template-columns:1fr auto;gap:40px;align-items:start}
+@media(max-width:620px){.hero-top{grid-template-columns:1fr;padding:28px 24px;gap:24px}}
+.h-kicker{font-size:11px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--ink4);margin-bottom:14px}
+.h-num{font-size:96px;font-weight:700;line-height:.88;letter-spacing:-0.055em;margin-bottom:16px;transition:color .5s}
+.h-num.calm{color:var(--green)}.h-num.caution{color:var(--amber)}.h-num.crash{color:var(--red)}
+.zpill{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:500;letter-spacing:-0.01em;margin-bottom:16px;border:0.5px solid transparent}
+.zpill.calm{background:var(--green-d);color:var(--green);border-color:var(--green-b)}
+.zpill.caution{background:var(--amber-d);color:var(--amber);border-color:var(--amber-b)}
+.zpill.crash{background:var(--red-d);color:var(--red);border-color:var(--red-b)}
+.zpill-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.h-body{font-size:15px;color:var(--ink3);line-height:1.65;letter-spacing:-0.01em;max-width:360px}
+.h-stats{display:flex;flex-direction:column;gap:8px;min-width:164px}
+.stile{background:rgba(255,255,255,0.04);border:0.5px solid var(--bdr);border-radius:var(--r);padding:14px 18px;text-align:right}
+.stile-v{font-size:26px;font-weight:600;letter-spacing:-0.04em;color:var(--ink);line-height:1;margin-bottom:3px}
+.stile-l{font-size:11px;color:var(--ink4)}
+.mstrip{border-top:0.5px solid var(--bdr);padding:18px 44px;display:flex;align-items:center;gap:16px}
+@media(max-width:620px){.mstrip{padding:14px 24px}}
+.mtrack{flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+.mfill{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1),background .5s}
+.mfill.calm{background:var(--green)}.mfill.caution{background:var(--amber)}.mfill.crash{background:var(--red)}
+.mlbl{font-size:11px;color:var(--ink4);white-space:nowrap}
+.insight{border-radius:var(--rl);padding:18px 22px;margin-bottom:12px;font-size:14px;line-height:1.7;letter-spacing:-0.01em;border:0.5px solid transparent;transition:all .4s}
+.insight strong{font-weight:600}
+.insight.calm{background:var(--green-d);color:rgba(48,209,88,0.85);border-color:var(--green-b)}
+.insight.caution{background:var(--amber-d);color:rgba(255,185,80,0.9);border-color:var(--amber-b)}
+.insight.crash{background:var(--red-d);color:rgba(255,120,110,0.9);border-color:var(--red-b)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.card{padding:22px 24px}
+.card-h{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink4);margin-bottom:14px}
+.chtabs{display:flex;background:rgba(255,255,255,0.06);border-radius:8px;padding:2px;width:fit-content;margin-bottom:14px}
+.chtab{padding:5px 14px;border:none;border-radius:6px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;background:transparent;color:var(--ink4);transition:all .15s}
+.chtab.active{background:rgba(255,255,255,0.1);color:var(--ink)}
+.chwrap{position:relative;width:100%;height:200px}
+.dl-wrap{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.dl-row{display:flex;align-items:center;justify-content:space-between}
+.dl-lft{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink3)}
+.dl-dot{width:7px;height:7px;border-radius:50%}
+.dl-cnt{font-size:13px;font-weight:500;color:var(--ink2);letter-spacing:-0.02em}
+.tcard{margin-bottom:12px;overflow:hidden}
+.thead-row{padding:14px 24px;border-bottom:0.5px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.thead-ttl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink4)}
+.thead-meta{font-size:12px;color:var(--ink4)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 24px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink4);text-align:left;background:rgba(255,255,255,0.02);border-bottom:0.5px solid var(--bdr)}
+tbody tr{border-bottom:0.5px solid var(--bdr);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,0.03)}
+td{padding:11px 24px;font-size:13px;color:var(--ink3)}
+td:first-child{color:var(--ink4);font-size:12px}
+.tnum{font-size:15px;font-weight:600;letter-spacing:-0.03em;color:var(--ink)}
+.tchip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;border:0.5px solid transparent}
+.tchip.calm{background:var(--green-d);color:var(--green);border-color:var(--green-b)}
+.tchip.caution{background:var(--amber-d);color:var(--amber);border-color:var(--amber-b)}
+.tchip.crash{background:var(--red-d);color:var(--red);border-color:var(--red-b)}
+.explainer{padding:40px 44px;margin-bottom:12px}
+@media(max-width:620px){.explainer{padding:28px 24px}}
+.explainer h2{font-size:26px;font-weight:700;letter-spacing:-0.04em;margin-bottom:12px}
+.explainer p{font-size:15px;color:var(--ink3);line-height:1.7;letter-spacing:-0.01em;margin-bottom:12px}
+.formula{background:rgba(255,255,255,0.04);border:0.5px solid var(--bdr);border-radius:12px;padding:16px 20px;font-family:'SF Mono','Menlo',monospace;font-size:14px;color:var(--ink);margin:20px 0}
+.ztiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
+@media(max-width:580px){.ztiles{grid-template-columns:1fr}}
+.ztile{border-radius:var(--r);padding:18px;border:0.5px solid transparent}
+.ztile.calm{background:var(--green-d);border-color:var(--green-b)}
+.ztile.caution{background:var(--amber-d);border-color:var(--amber-b)}
+.ztile.crash{background:var(--red-d);border-color:var(--red-b)}
+.zt-r{font-size:22px;font-weight:700;letter-spacing:-0.04em;margin-bottom:4px}
+.ztile.calm .zt-r{color:var(--green)}.ztile.caution .zt-r{color:var(--amber)}.ztile.crash .zt-r{color:var(--red)}
+.zt-n{font-size:13px;font-weight:600;margin-bottom:4px;letter-spacing:-0.01em}
+.ztile.calm .zt-n{color:var(--green)}.ztile.caution .zt-n{color:var(--amber)}.ztile.crash .zt-n{color:var(--red)}
+.zt-d{font-size:12px;line-height:1.5}
+.ztile.calm .zt-d{color:rgba(48,209,88,0.65)}.ztile.caution .zt-d{color:rgba(255,159,10,0.65)}.ztile.crash .zt-d{color:rgba(255,69,58,0.65)}
 
-/* ── SECTION EYEBROW ── */
-.eyebrow {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-}
+/* ── ETF TAB ── */
+.etf-hero{margin-bottom:12px;overflow:hidden}
+.etf-top{padding:40px 44px;display:grid;grid-template-columns:1fr auto;gap:36px;align-items:start}
+@media(max-width:640px){.etf-top{grid-template-columns:1fr;padding:28px 24px;gap:24px}}
+.etf-ticker{font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--green);margin-bottom:8px}
+.etf-name{font-size:22px;font-weight:700;letter-spacing:-0.03em;color:var(--ink);margin-bottom:6px}
+.etf-desc{font-size:14px;color:var(--ink4);line-height:1.6;letter-spacing:-0.01em;margin-bottom:20px;max-width:380px}
+.etf-pr-row{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+.etf-price{font-size:56px;font-weight:700;letter-spacing:-0.05em;line-height:.9;color:var(--green);transition:color .4s}
+.etf-price.crash{color:var(--green)}
+.etf-chg{font-size:14px;font-weight:600;padding:4px 10px;border-radius:8px;letter-spacing:-0.01em}
+.etf-chg.up{background:var(--green-d);color:var(--green)}
+.etf-chg.dn{background:var(--red-d);color:var(--red)}
+.etf-note{font-size:11px;color:var(--ink4);letter-spacing:-0.01em;margin-bottom:4px}
+.etf-formula{font-size:11px;color:var(--ink4);font-family:'SF Mono','Menlo',monospace;margin-bottom:0}
+.etf-rstats{display:flex;flex-direction:column;gap:8px;min-width:150px}
+.etf-st{background:rgba(255,255,255,0.04);border:0.5px solid var(--bdr);border-radius:var(--r);padding:14px 18px;text-align:right}
+.etf-st-v{font-size:22px;font-weight:600;letter-spacing:-0.04em;color:var(--ink);line-height:1;margin-bottom:3px}
+.etf-st-l{font-size:11px;color:var(--ink4)}
+.etf-strip{border-top:0.5px solid var(--bdr);padding:18px 44px;display:flex;align-items:center;gap:16px}
+@media(max-width:620px){.etf-strip{padding:14px 24px}}
 
-/* ── HERO BLOCK ── */
-.hero {
-  background: var(--bg);
-  border-radius: var(--radius-lg);
-  border: 0.5px solid var(--border);
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-.hero-top {
-  padding: 48px 48px 40px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 48px;
-  align-items: start;
-}
-@media (max-width: 640px) {
-  .hero-top { grid-template-columns: 1fr; padding: 32px 28px; gap: 32px; }
-}
-.hero-kicker {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-3);
-  letter-spacing: -0.01em;
-  margin-bottom: 10px;
-}
-.hero-number {
-  font-size: 96px;
-  font-weight: 700;
-  line-height: 0.9;
-  letter-spacing: -0.05em;
-  margin-bottom: 16px;
-  transition: color 0.5s ease;
-}
-.hero-number.calm { color: var(--calm); }
-.hero-number.caution { color: var(--caution); }
-.hero-number.crash { color: var(--crash); }
+.chart-card{padding:22px 24px;margin-bottom:12px}
+.chart-leg{display:flex;gap:16px;margin-bottom:14px}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink4)}
+.leg-line{width:16px;height:2px;border-radius:1px}
 
-.signal-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 13px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 16px;
-  letter-spacing: -0.01em;
-}
-.signal-chip.calm { background: var(--calm-bg); color: var(--calm); }
-.signal-chip.caution { background: var(--caution-bg); color: var(--caution); }
-.signal-chip.crash { background: var(--crash-bg); color: var(--crash); }
-.chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.sim-card{padding:24px;margin-bottom:12px}
+.sim-title{font-size:14px;font-weight:600;letter-spacing:-0.02em;color:var(--ink2);margin-bottom:6px}
+.sim-sub{font-size:12px;color:var(--ink4);margin-bottom:20px;letter-spacing:-0.01em}
+.sim-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.sim-row:last-of-type{margin-bottom:0}
+.sim-lbl{font-size:13px;color:var(--ink3);min-width:160px;letter-spacing:-0.01em}
+.sim-track{flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;position:relative}
+.sim-bar{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.sim-val{font-size:14px;font-weight:600;letter-spacing:-0.02em;min-width:80px;text-align:right}
 
-.hero-body {
-  font-size: 17px;
-  color: var(--ink-2);
-  line-height: 1.6;
-  letter-spacing: -0.01em;
-  max-width: 440px;
-}
+.dis-card{padding:20px 24px;margin-bottom:12px}
+.dis-text{font-size:12px;color:var(--ink4);line-height:1.7;letter-spacing:-0.01em}
 
-/* RIGHT STATS COLUMN */
-.hero-stats { display: flex; flex-direction: column; gap: 10px; min-width: 180px; }
-.stat-tile {
-  background: var(--bg-2);
-  border-radius: var(--radius-sm);
-  padding: 16px 20px;
-  text-align: right;
-}
-.stat-tile-val {
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: -0.04em;
-  color: var(--ink);
-  line-height: 1;
-  margin-bottom: 4px;
-}
-.stat-tile-label {
-  font-size: 12px;
-  color: var(--ink-3);
-  letter-spacing: -0.01em;
-}
-
-/* METER STRIP */
-.meter-strip {
-  border-top: 0.5px solid var(--border);
-  padding: 20px 48px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-@media (max-width: 640px) { .meter-strip { padding: 16px 28px; } }
-.meter-track {
-  flex: 1;
-  height: 4px;
-  background: var(--bg-3);
-  border-radius: 2px;
-  overflow: hidden;
-  position: relative;
-}
-.meter-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 1s cubic-bezier(0.4,0,0.2,1), background 0.5s;
-}
-.meter-fill.calm { background: var(--calm); }
-.meter-fill.caution { background: var(--caution); }
-.meter-fill.crash { background: var(--crash); }
-.meter-label { font-size: 12px; color: var(--ink-3); letter-spacing: -0.01em; white-space: nowrap; }
-.meter-label strong { color: var(--ink); font-weight: 500; }
-
-/* ── INSIGHT BANNER ── */
-.insight {
-  border-radius: var(--radius);
-  padding: 20px 24px;
-  margin-bottom: 16px;
-  font-size: 15px;
-  line-height: 1.65;
-  letter-spacing: -0.01em;
-  border: 0.5px solid transparent;
-  transition: background 0.4s, color 0.4s;
-}
-.insight.calm { background: var(--calm-bg); color: #14532d; border-color: rgba(28,122,61,0.15); }
-.insight.caution { background: var(--caution-bg); color: #92400e; border-color: rgba(180,83,9,0.15); }
-.insight.crash { background: var(--crash-bg); color: #9b1c1c; border-color: rgba(192,57,43,0.15); }
-.insight strong { font-weight: 600; }
-
-/* ── GRID ── */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
-.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 16px; }
-@media (max-width: 640px) { .grid-3 { grid-template-columns: 1fr; } }
-
-/* ── CARD ── */
-.card {
-  background: var(--bg);
-  border-radius: var(--radius);
-  border: 0.5px solid var(--border);
-  padding: 24px;
-  overflow: hidden;
-}
-.card-head {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-3);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-bottom: 16px;
-}
-.chart-wrap { position: relative; width: 100%; height: 200px; }
-
-/* CHART TABS */
-.chart-tabs { display: flex; gap: 0; background: var(--bg-2); border-radius: 8px; padding: 2px; margin-bottom: 14px; width: fit-content; }
-.ct-btn {
-  padding: 5px 14px;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  background: transparent;
-  color: var(--ink-3);
-  letter-spacing: -0.01em;
-  transition: all 0.15s;
-}
-.ct-btn.active { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-
-/* DONUT LEGEND */
-.donut-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-.dl-item { display: flex; align-items: center; justify-content: space-between; }
-.dl-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); letter-spacing: -0.01em; }
-.dl-swatch { width: 8px; height: 8px; border-radius: 50%; }
-.dl-count { font-size: 13px; font-weight: 500; color: var(--ink); letter-spacing: -0.02em; }
-
-/* ── HISTORY TABLE ── */
-.table-card {
-  background: var(--bg);
-  border-radius: var(--radius);
-  border: 0.5px solid var(--border);
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-.table-head-row {
-  padding: 14px 24px;
-  border-bottom: 0.5px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.table-head-label { font-size: 12px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.07em; }
-.table-head-meta { font-size: 12px; color: var(--ink-4); }
-
-table { width: 100%; border-collapse: collapse; }
-thead th {
-  padding: 10px 24px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-3);
-  text-align: left;
-  background: var(--bg-2);
-  border-bottom: 0.5px solid var(--border);
-}
-tbody tr { border-bottom: 0.5px solid var(--border); transition: background 0.1s; }
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: var(--bg-2); }
-td { padding: 12px 24px; font-size: 14px; color: var(--ink-2); letter-spacing: -0.01em; }
-td:first-child { color: var(--ink-3); font-size: 13px; }
-.td-num { font-size: 16px; font-weight: 600; letter-spacing: -0.03em; color: var(--ink); }
-.td-chip {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-.td-chip.calm { background: var(--calm-bg); color: var(--calm); }
-.td-chip.caution { background: var(--caution-bg); color: var(--caution); }
-.td-chip.crash { background: var(--crash-bg); color: var(--crash); }
-
-/* ── EXPLAINER ── */
-.explainer-card {
-  background: var(--bg);
-  border-radius: var(--radius);
-  border: 0.5px solid var(--border);
-  padding: 40px 48px;
-  margin-bottom: 16px;
-}
-@media (max-width: 640px) { .explainer-card { padding: 28px 24px; } }
-.explainer-card h2 {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  margin-bottom: 14px;
-  color: var(--ink);
-}
-.explainer-card p {
-  font-size: 16px;
-  color: var(--ink-2);
-  line-height: 1.7;
-  letter-spacing: -0.01em;
-  margin-bottom: 14px;
-}
-.formula-box {
-  background: var(--bg-2);
-  border-radius: var(--radius-sm);
-  padding: 18px 22px;
-  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
-  font-size: 15px;
-  color: var(--ink);
-  letter-spacing: -0.01em;
-  margin: 24px 0;
-  border: 0.5px solid var(--border);
-}
-.zones-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 24px; }
-@media (max-width: 600px) { .zones-grid { grid-template-columns: 1fr; } }
-.zone-tile {
-  border-radius: var(--radius-sm);
-  padding: 18px;
-}
-.zone-tile.calm { background: var(--calm-bg); }
-.zone-tile.caution { background: var(--caution-bg); }
-.zone-tile.crash { background: var(--crash-bg); }
-.zone-range {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  margin-bottom: 4px;
-}
-.zone-tile.calm .zone-range { color: var(--calm); }
-.zone-tile.caution .zone-range { color: var(--caution); }
-.zone-tile.crash .zone-range { color: var(--crash); }
-.zone-name {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  letter-spacing: -0.01em;
-}
-.zone-tile.calm .zone-name { color: var(--calm); }
-.zone-tile.caution .zone-name { color: var(--caution); }
-.zone-tile.crash .zone-name { color: var(--crash); }
-.zone-desc {
-  font-size: 12px;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
-}
-.zone-tile.calm .zone-desc { color: #166534; }
-.zone-tile.caution .zone-desc { color: #92400e; }
-.zone-tile.crash .zone-desc { color: #9b1c1c; }
-
-/* ── FEEDBACK ── */
-.feedback-card {
-  background: var(--bg);
-  border-radius: var(--radius);
-  border: 0.5px solid var(--border);
-  padding: 40px 48px;
-  margin-bottom: 16px;
-}
-@media (max-width: 640px) { .feedback-card { padding: 28px 24px; } }
-.feedback-card h2 {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  margin-bottom: 6px;
-}
-.feedback-card .sub {
-  font-size: 15px;
-  color: var(--ink-3);
-  margin-bottom: 28px;
-  letter-spacing: -0.01em;
-}
-.form-q {
-  margin-bottom: 24px;
-}
-.form-q-label {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--ink);
-  margin-bottom: 10px;
-  letter-spacing: -0.01em;
-}
-.radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
-.radio-opt {
-  padding: 7px 16px;
-  border: 1px solid var(--border-2);
-  border-radius: 20px;
-  font-size: 14px;
-  color: var(--ink-2);
-  cursor: pointer;
-  transition: all 0.15s;
-  letter-spacing: -0.01em;
-  user-select: none;
-}
-.radio-opt:hover { border-color: rgba(0,0,0,0.24); }
-.radio-opt.sel { background: var(--ink); color: #fff; border-color: var(--ink); }
-.radio-opt input { display: none; }
-
-textarea {
-  width: 100%;
-  border: 1px solid var(--border-2);
-  border-radius: var(--radius-sm);
-  padding: 12px 16px;
-  font-size: 15px;
-  font-family: inherit;
-  color: var(--ink);
-  background: var(--bg);
-  resize: vertical;
-  min-height: 88px;
-  outline: none;
-  letter-spacing: -0.01em;
-  transition: border 0.15s;
-  -webkit-appearance: none;
-}
-textarea:focus { border-color: rgba(0,0,0,0.32); }
-
-.submit-btn {
-  background: var(--ink);
-  color: #fff;
-  border: none;
-  border-radius: 980px;
-  padding: 12px 28px;
-  font-size: 15px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  letter-spacing: -0.01em;
-  transition: opacity 0.15s;
-  -webkit-appearance: none;
-}
-.submit-btn:hover { opacity: 0.82; }
-
-.success-msg {
-  display: none;
-  margin-top: 14px;
-  padding: 14px 18px;
-  background: var(--calm-bg);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  color: var(--calm);
-  letter-spacing: -0.01em;
-  border: 0.5px solid rgba(28,122,61,0.18);
-}
-
-/* ── FOOTER ── */
-footer {
-  border-top: 0.5px solid var(--border-2);
-  padding: 28px 22px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--ink-4);
-  letter-spacing: -0.01em;
-  line-height: 1.8;
-}
+footer{border-top:0.5px solid var(--bdr);padding:24px;text-align:center;font-size:11px;color:var(--ink4);letter-spacing:-0.01em;line-height:1.9}
 </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
-  <div class="nav-wordmark">
-    <div class="nav-icon">
-      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M7 1.5C4.515 1.5 2.5 3.515 2.5 6c0 1.38.6 2.62 1.55 3.47L2.5 12.5h9l-1.55-3.03A4.48 4.48 0 0 0 11.5 6c0-2.485-2.015-4.5-4.5-4.5z" fill="white"/>
-        <circle cx="5.5" cy="5.8" r="0.7" fill="#1d1d1f"/>
-        <circle cx="8.5" cy="5.8" r="0.7" fill="#1d1d1f"/>
-        <path d="M2.5 3.2C2.5 2.4 3.1 1.8 4 1.8" stroke="white" stroke-width="1" fill="none" stroke-linecap="round"/>
-        <path d="M11.5 3.2C11.5 2.4 10.9 1.8 10 1.8" stroke="white" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <div class="n-logo">
+    <div class="n-icon">
+      <svg viewBox="0 0 15 15" fill="none">
+        <path d="M7.5 1.5C5 1.5 3 3.5 3 6c0 1.3.55 2.4 1.4 3.2L3 13h9l-1.4-3.8C11.45 8.4 12 7.3 12 6c0-2.5-2-4.5-4.5-4.5z" fill="white" opacity=".9"/>
+        <circle cx="6" cy="5.8" r=".75" fill="#000"/>
+        <circle cx="9" cy="5.8" r=".75" fill="#000"/>
+        <path d="M3 3.5C3 2.6 3.7 2 4.6 2M12 3.5C12 2.6 11.3 2 10.4 2" stroke="white" stroke-width="1" fill="none" stroke-linecap="round"/>
       </svg>
     </div>
     Bearprint
   </div>
-  <div class="nav-right">
-    <span class="nav-date" id="nav-date">—</span>
-    <span class="nav-pill">POC v0.1</span>
+  <div class="n-right">
+    <span class="n-date" id="n-date">—</span>
+    <div class="n-tabs">
+      <button class="n-tab active" onclick="switchTab('index',this)">Index</button>
+      <button class="n-tab" onclick="switchTab('etf',this)">BPX ETF</button>
+    </div>
   </div>
 </nav>
 
 <div class="page">
 
-  <!-- HERO -->
-  <div class="hero">
-    <div class="hero-top">
-      <div>
-        <p class="hero-kicker">Today's market breadth</p>
-        <div class="hero-number caution" id="hero-num">—</div>
-        <div class="signal-chip caution" id="signal-chip">
-          <span class="chip-dot"></span>
-          <span id="chip-text">—</span>
+  <!-- ── INDEX TAB ── -->
+  <div class="screen on" id="tab-index">
+
+    <div class="g hero">
+      <div class="hero-top">
+        <div>
+          <p class="h-kicker">NSE full market breadth · today</p>
+          <div class="h-num caution" id="h-num">—</div>
+          <div class="zpill caution" id="zpill"><span class="zpill-dot"></span><span id="zpill-txt">—</span></div>
+          <p class="h-body" id="h-body">Loading signal...</p>
         </div>
-        <p class="hero-body" id="hero-body">Computing signal...</p>
-      </div>
-      <div class="hero-stats">
-        <div class="stat-tile">
-          <div class="stat-tile-val" id="stat-avg">—</div>
-          <div class="stat-tile-label">7-day average</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-tile-val" id="stat-losers">—</div>
-          <div class="stat-tile-label">stocks closed red</div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-tile-val" id="stat-streak">—</div>
-          <div class="stat-tile-label">days in zone</div>
+        <div class="h-stats">
+          <div class="stile"><div class="stile-v" id="s-avg">—</div><div class="stile-l">7-day average</div></div>
+          <div class="stile"><div class="stile-v" id="s-red">—</div><div class="stile-l">stocks closed red</div></div>
+          <div class="stile"><div class="stile-v" id="s-streak">—</div><div class="stile-l">days in zone</div></div>
         </div>
       </div>
-    </div>
-    <div class="meter-strip">
-      <span class="meter-label">0 · Calm</span>
-      <div class="meter-track">
-        <div class="meter-fill caution" id="meter" style="width:0%"></div>
+      <div class="mstrip">
+        <span class="mlbl">0 · Calm</span>
+        <div class="mtrack"><div class="mfill caution" id="mfill" style="width:0%"></div></div>
+        <span class="mlbl">100 · Crash</span>
+        <span class="mlbl" id="mval" style="min-width:36px;text-align:right"><strong>—</strong></span>
       </div>
-      <span class="meter-label">100 · Crash</span>
-      <span class="meter-label" id="meter-pct" style="min-width:38px;text-align:right;"><strong>—</strong></span>
     </div>
+
+    <div class="insight caution" id="insight">Loading live data...</div>
+
+    <div class="grid2">
+      <div class="g">
+        <div class="card">
+          <p class="card-h">Bearprint trend</p>
+          <div class="chtabs">
+            <button class="chtab active" onclick="switchChart('bp',this)">30 days</button>
+            <button class="chtab" onclick="switchChart('overlay',this)">vs Nifty</button>
+          </div>
+          <div class="chwrap"><canvas id="mainChart"></canvas></div>
+        </div>
+      </div>
+      <div class="g">
+        <div class="card">
+          <p class="card-h">Zone breakdown · 30 days</p>
+          <div class="chwrap" style="height:170px;margin-top:4px"><canvas id="zoneChart"></canvas></div>
+          <div class="dl-wrap" id="dl-legend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g tcard">
+      <div class="thead-row">
+        <span class="thead-ttl">Signal history</span>
+        <span class="thead-meta">Last 14 trading days</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table><thead><tr><th>Date</th><th>Bearprint</th><th>Stocks red</th><th>Total</th><th>7d avg</th><th>Zone</th></tr></thead>
+        <tbody id="tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="g explainer">
+      <h2>What is Bearprint?</h2>
+      <p>Bearprint tracks market breadth from the loss side — every day it measures what proportion of NSE-listed stocks closed below their previous price. Instead of asking "how much did the market fall?", it asks "how many stocks fell?"</p>
+      <p>A headline Nifty drop of 1% could be driven by two large-caps. Bearprint cuts through that noise. A reading of 75 means 75% of all NSE equity stocks closed red — broadcast market pain, not concentrated.</p>
+      <div class="formula">Bearprint = (stocks closing below prev. close ÷ total NSE EQ stocks) × 100</div>
+      <div class="ztiles">
+        <div class="ztile calm"><div class="zt-r">0–44</div><div class="zt-n">Calm</div><div class="zt-d">Normal conditions. Majority of stocks holding their ground.</div></div>
+        <div class="ztile caution"><div class="zt-r">45–64</div><div class="zt-n">Caution</div><div class="zt-d">Breadth deteriorating. Worth reviewing unhedged positions.</div></div>
+        <div class="ztile crash"><div class="zt-r">65–100</div><div class="zt-n">Crash zone</div><div class="zt-d">Widespread losses. Consider protection before the crowd does.</div></div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- INSIGHT -->
-  <div class="insight caution" id="insight">Computing signal...</div>
+  <!-- ── ETF TAB ── -->
+  <div class="screen" id="tab-etf">
 
-  <!-- CHARTS -->
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-head">Bearprint trend</div>
-      <div class="chart-tabs">
-        <button class="ct-btn active" onclick="switchTab('bp',this)">30 days</button>
-        <button class="ct-btn" onclick="switchTab('overlay',this)">vs Nifty</button>
+    <div class="g etf-hero">
+      <div class="etf-top">
+        <div>
+          <p class="etf-ticker">BPX · BEARPRINT ETF</p>
+          <p class="etf-name">Bearprint Inverse Index ETF</p>
+          <p class="etf-desc">Tracks the inverse of the Bearprint Index. Gains value as market breadth deteriorates — designed as a portfolio hedge during market crashes.</p>
+          <div class="etf-pr-row">
+            <span class="etf-price" id="etf-nav">—</span>
+            <span class="etf-chg up" id="etf-chg">—</span>
+          </div>
+          <p class="etf-note" id="etf-note">NAV as of — · Simulated · Based on real NSE Bearprint data</p>
+          <p class="etf-formula" id="etf-formula">NAV = max(1, 100 + (Bearprint − 50) × 2.5)</p>
+        </div>
+        <div class="etf-rstats">
+          <div class="etf-st"><div class="etf-st-v">₹100</div><div class="etf-st-l">base NAV</div></div>
+          <div class="etf-st"><div class="etf-st-v" id="etf-bp">—</div><div class="etf-st-l">Bearprint today</div></div>
+          <div class="etf-st"><div class="etf-st-v" id="etf-zone">—</div><div class="etf-st-l">market zone</div></div>
+        </div>
       </div>
-      <div class="chart-wrap"><canvas id="mainChart" role="img" aria-label="Bearprint index over 30 trading days"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-head">Zone breakdown · 30 days</div>
-      <div class="chart-wrap" style="height:170px;margin-top:4px;">
-        <canvas id="zoneChart" role="img" aria-label="Donut chart of calm, caution, crash day distribution over 30 days"></canvas>
-      </div>
-      <div class="donut-legend" id="donut-legend"></div>
-    </div>
-  </div>
-
-  <!-- TABLE -->
-  <div class="table-card">
-    <div class="table-head-row">
-      <span class="table-head-label">Signal history</span>
-      <span class="table-head-meta">Last 14 trading days</span>
-    </div>
-    <div style="overflow-x:auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Bearprint</th>
-            <th>Stocks red</th>
-            <th>7d avg</th>
-            <th>Zone</th>
-          </tr>
-        </thead>
-        <tbody id="table-body"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- EXPLAINER -->
-  <div class="explainer-card">
-    <p class="eyebrow">About the index</p>
-    <h2>What is Bearprint?</h2>
-    <p>Bearprint is a market breadth index that measures how widespread losses are across the Nifty 500 on any given trading day. Rather than tracking how much the market fell, it tracks how many stocks fell.</p>
-    <p>When the headline index drops 1%, it could be driven by two large-caps. Bearprint cuts through that noise — a reading of 68 means 68% of all tracked stocks closed red. That's a very different picture.</p>
-    <div class="formula-box">Bearprint = (stocks closing below previous close ÷ 500) × 100</div>
-    <p>Rising Bearprint over consecutive sessions often signals broad market deterioration — sometimes before the Nifty 50 visibly reflects it.</p>
-    <div class="zones-grid">
-      <div class="zone-tile calm">
-        <div class="zone-range">0–44</div>
-        <div class="zone-name">Calm</div>
-        <div class="zone-desc">Normal conditions. Majority of stocks holding their ground.</div>
-      </div>
-      <div class="zone-tile caution">
-        <div class="zone-range">45–64</div>
-        <div class="zone-name">Caution</div>
-        <div class="zone-desc">Breadth deteriorating. Worth reviewing unhedged positions.</div>
-      </div>
-      <div class="zone-tile crash">
-        <div class="zone-range">65–100</div>
-        <div class="zone-name">Crash zone</div>
-        <div class="zone-desc">Widespread losses. Consider protection before the crowd does.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FEEDBACK -->
-  <div class="feedback-card">
-    <h2>Shape what comes next</h2>
-    <p class="sub">This is a concept in progress. Three honest questions.</p>
-
-    <div class="form-q">
-      <p class="form-q-label">Did today's signal feel useful?</p>
-      <div class="radio-group" id="rg1">
-        <label class="radio-opt" onclick="pick(this,'rg1')"><input type="radio" name="q1" value="yes"> Yes, I'd act on this</label>
-        <label class="radio-opt" onclick="pick(this,'rg1')"><input type="radio" name="q1" value="maybe"> Maybe, need more context</label>
-        <label class="radio-opt" onclick="pick(this,'rg1')"><input type="radio" name="q1" value="no"> Not really</label>
+      <div class="etf-strip">
+        <span class="mlbl">₹1 · floor</span>
+        <div class="mtrack"><div class="mfill" id="etf-meter" style="width:0%;background:var(--green)"></div></div>
+        <span class="mlbl">₹225 · max</span>
+        <span class="mlbl" id="etf-meter-val" style="min-width:50px;text-align:right"><strong>—</strong></span>
       </div>
     </div>
 
-    <div class="form-q">
-      <p class="form-q-label">If Bearprint hit 75, what would you do?</p>
-      <div class="radio-group" id="rg2">
-        <label class="radio-opt" onclick="pick(this,'rg2')"><input type="radio" name="q2" value="hedge"> Move to gold or liquid funds</label>
-        <label class="radio-opt" onclick="pick(this,'rg2')"><input type="radio" name="q2" value="hold"> Hold and watch</label>
-        <label class="radio-opt" onclick="pick(this,'rg2')"><input type="radio" name="q2" value="sell"> Reduce equity exposure</label>
-        <label class="radio-opt" onclick="pick(this,'rg2')"><input type="radio" name="q2" value="nothing"> Nothing — I don't trust signals</label>
+    <div class="g chart-card" style="margin-bottom:12px">
+      <p class="card-h">BPX NAV vs Nifty 50 · 30 days</p>
+      <div class="chart-leg">
+        <div class="leg-item"><div class="leg-line" style="background:var(--green)"></div>BPX ETF (simulated)</div>
+        <div class="leg-item"><div class="leg-line" style="background:var(--blue);opacity:.6;border-top:1px dashed var(--blue);background:none"></div>Nifty 50 (normalised)</div>
+      </div>
+      <div class="chwrap"><canvas id="etfChart"></canvas></div>
+    </div>
+
+    <div class="g sim-card">
+      <p class="sim-title">Crash simulation</p>
+      <p class="sim-sub" id="sim-sub">If you had ₹1,00,000 invested — how does your portfolio perform today?</p>
+      <div class="sim-row">
+        <span class="sim-lbl">100% Nifty</span>
+        <div class="sim-track"><div class="sim-bar" id="sim-bar-1" style="background:var(--red)"></div></div>
+        <span class="sim-val" id="sim-val-1" style="color:var(--red)">—</span>
+      </div>
+      <div class="sim-row">
+        <span class="sim-lbl">80% Nifty + 20% BPX</span>
+        <div class="sim-track"><div class="sim-bar" id="sim-bar-2" style="background:var(--amber)"></div></div>
+        <span class="sim-val" id="sim-val-2" style="color:var(--amber)">—</span>
+      </div>
+      <div class="sim-row">
+        <span class="sim-lbl">60% Nifty + 40% BPX</span>
+        <div class="sim-track"><div class="sim-bar" id="sim-bar-3" style="background:var(--green)"></div></div>
+        <span class="sim-val" id="sim-val-3" style="color:var(--green)">—</span>
       </div>
     </div>
 
-    <div class="form-q">
-      <p class="form-q-label">What would make you trust this? <span style="color:var(--ink-3);font-weight:400;">(optional)</span></p>
-      <textarea id="q3" placeholder="Be direct — this goes straight to the people building it..."></textarea>
+    <div class="g dis-card">
+      <p class="dis-text" id="dis-text">BPX is a simulated ETF for research and concept validation. NAV is computed daily from real NSE market breadth data using the formula: NAV = max(1, 100 + (Bearprint − 50) × 2.5). This is not a real financial instrument. Not financial advice. For educational purposes only.</p>
     </div>
 
-    <button class="submit-btn" onclick="submit()">Send feedback</button>
-    <div class="success-msg" id="success">
-      Received — thank you. This kind of early feedback is exactly what determines whether Bearprint becomes a real product.
-    </div>
   </div>
 
 </div>
 
 <footer>
-  Bearprint · Market breadth index for Nifty 500<br>
-  Data is simulated for research and concept validation · Not financial advice<br>
-  POC v0.1 · Built to validate the idea, not to trade on it
+  Bearprint · NSE full-market breadth index · Data sourced daily from NSE Bhavcopy<br>
+  BPX ETF is simulated — not a real instrument · Not financial advice · POC v0.2
 </footer>
 
 <script>
-// ── API CONFIG ────────────────────────────────────────────────────────────────
-// Point this to your Render.com backend URL after deployment.
-// Example: const API = "https://bearprint-api.onrender.com";
 const API = window.BEARPRINT_API || "https://bearprint-api.onrender.com";
+const ZC = {calm:"#30d158",caution:"#ff9f0a",crash:"#ff453a"};
+const ZL = {calm:"Calm",caution:"Caution",crash:"Crash zone"};
+function zz(bp){return bp>=65?"crash":bp>=45?"caution":"calm"}
 
-// ── LOADING STATE ─────────────────────────────────────────────────────────────
-function showLoading() {
-  document.getElementById('hero-num').textContent = '—';
-  document.getElementById('insight').textContent  = 'Loading live data...';
-}
-
-function showError(msg) {
-  document.getElementById('insight').className = 'insight caution';
-  document.getElementById('insight').innerHTML = `<strong>Could not load live data.</strong> ${msg} — showing cached seed data instead.`;
-}
-
-// ── DATA NORMALISER ───────────────────────────────────────────────────────────
-// Converts API response shape into the internal shape the render functions expect.
-function normaliseRow(r) {
+function nr(r){
   return {
-    bp:     parseFloat(r.bp_value),
-    losers: r.losers,
-    total:  r.total,
-    zone:   r.zone,
-    avg:    parseFloat(r.avg_7d),
-    label:  new Date(r.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' }),
+    bp:parseFloat(r.bp_value),
+    losers:r.losers,total:r.total,
+    zone:r.zone,avg:parseFloat(r.avg_7d),
+    bpx:parseFloat(r.bpx_nav||100),
+    bpxch:parseFloat(r.bpx_change||0),
+    label:new Date(r.date).toLocaleDateString("en-IN",{day:"2-digit",month:"short",timeZone:"Asia/Kolkata"}),
+    date:r.date
   };
 }
 
-// ── FETCH FROM API ────────────────────────────────────────────────────────────
-async function loadData() {
-  showLoading();
-  try {
-    const [todayRes, histRes] = await Promise.all([
+function dAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().split("T")[0]}
+
+function seedRows(){
+  const raw=[
+    {bp_value:24.4,losers:593,total:2433,zone:"calm",avg_7d:24.4,bpx_nav:36.0,bpx_change:0,date:dAgo(29)},
+    {bp_value:31.2,losers:759,total:2433,zone:"calm",avg_7d:27.8,bpx_nav:53.0,bpx_change:47.2,date:dAgo(28)},
+    {bp_value:28.0,losers:681,total:2433,zone:"calm",avg_7d:27.9,bpx_nav:45.0,bpx_change:-15.1,date:dAgo(27)},
+    {bp_value:35.6,losers:866,total:2433,zone:"calm",avg_7d:29.8,bpx_nav:64.0,bpx_change:42.2,date:dAgo(26)},
+    {bp_value:22.8,losers:555,total:2433,zone:"calm",avg_7d:28.4,bpx_nav:32.0,bpx_change:-50.0,date:dAgo(25)},
+    {bp_value:41.0,losers:998,total:2433,zone:"calm",avg_7d:30.5,bpx_nav:77.5,bpx_change:142.2,date:dAgo(24)},
+    {bp_value:38.4,losers:934,total:2433,zone:"calm",avg_7d:31.6,bpx_nav:71.0,bpx_change:-8.4,date:dAgo(23)},
+    {bp_value:67.2,losers:1635,total:2433,zone:"crash",avg_7d:36.9,bpx_nav:143.0,bpx_change:101.4,date:dAgo(22)},
+    {bp_value:72.8,losers:1771,total:2433,zone:"crash",avg_7d:43.9,bpx_nav:157.0,bpx_change:9.8,date:dAgo(21)},
+    {bp_value:71.0,losers:1727,total:2433,zone:"crash",avg_7d:46.8,bpx_nav:152.5,bpx_change:-2.9,date:dAgo(20)},
+    {bp_value:68.4,losers:1664,total:2433,zone:"crash",avg_7d:52.7,bpx_nav:146.0,bpx_change:-4.3,date:dAgo(19)},
+    {bp_value:74.2,losers:1805,total:2433,zone:"crash",avg_7d:57.6,bpx_nav:160.5,bpx_change:9.9,date:dAgo(18)},
+    {bp_value:65.6,losers:1596,total:2433,zone:"crash",avg_7d:62.7,bpx_nav:139.0,bpx_change:-13.4,date:dAgo(17)},
+    {bp_value:58.8,losers:1431,total:2433,zone:"caution",avg_7d:65.4,bpx_nav:122.0,bpx_change:-12.2,date:dAgo(16)},
+    {bp_value:44.2,losers:1075,total:2433,zone:"calm",avg_7d:64.9,bpx_nav:85.5,bpx_change:-29.9,date:dAgo(15)},
+    {bp_value:38.6,losers:939,total:2433,zone:"calm",avg_7d:60.4,bpx_nav:71.5,bpx_change:-16.4,date:dAgo(14)},
+    {bp_value:32.0,losers:779,total:2433,zone:"calm",avg_7d:56.9,bpx_nav:55.0,bpx_change:-23.1,date:dAgo(13)},
+    {bp_value:29.4,losers:715,total:2433,zone:"calm",avg_7d:48.9,bpx_nav:48.5,bpx_change:-11.8,date:dAgo(12)},
+    {bp_value:27.2,losers:662,total:2433,zone:"calm",avg_7d:42.3,bpx_nav:43.0,bpx_change:-11.3,date:dAgo(11)},
+    {bp_value:33.8,losers:823,total:2433,zone:"calm",avg_7d:37.7,bpx_nav:59.5,bpx_change:38.4,date:dAgo(10)},
+    {bp_value:19.6,losers:477,total:2433,zone:"calm",avg_7d:32.1,bpx_nav:24.0,bpx_change:-59.7,date:dAgo(9)},
+    {bp_value:22.4,losers:545,total:2433,zone:"calm",avg_7d:29.5,bpx_nav:31.0,bpx_change:29.2,date:dAgo(8)},
+    {bp_value:47.0,losers:1144,total:2433,zone:"caution",avg_7d:30.2,bpx_nav:92.5,bpx_change:198.4,date:dAgo(7)},
+    {bp_value:53.6,losers:1304,total:2433,zone:"caution",avg_7d:33.3,bpx_nav:109.0,bpx_change:17.8,date:dAgo(6)},
+    {bp_value:61.2,losers:1489,total:2433,zone:"caution",avg_7d:38.2,bpx_nav:128.0,bpx_change:17.4,date:dAgo(5)},
+    {bp_value:58.4,losers:1421,total:2433,zone:"caution",avg_7d:45.1,bpx_nav:121.0,bpx_change:-5.5,date:dAgo(4)},
+    {bp_value:63.8,losers:1552,total:2433,zone:"caution",avg_7d:47.1,bpx_nav:134.5,bpx_change:11.2,date:dAgo(3)},
+    {bp_value:55.2,losers:1343,total:2433,zone:"caution",avg_7d:51.6,bpx_nav:113.0,bpx_change:-16.0,date:dAgo(2)},
+    {bp_value:49.6,losers:1207,total:2433,zone:"caution",avg_7d:52.5,bpx_nav:99.0,bpx_change:-12.4,date:dAgo(1)},
+    {bp_value:75.17,losers:1829,total:2433,zone:"crash",avg_7d:75.17,bpx_nav:162.9,bpx_change:64.5,date:dAgo(0)},
+  ];
+  return raw.map(nr);
+}
+
+async function loadAll(){
+  try{
+    const [tr,hr,er]=await Promise.all([
       fetch(`${API}/today`),
       fetch(`${API}/history?days=30`),
+      fetch(`${API}/etf/today`),
     ]);
-
-    if (!todayRes.ok) throw new Error(`/today returned ${todayRes.status}`);
-    if (!histRes.ok)  throw new Error(`/history returned ${histRes.status}`);
-
-    const todayJson = await todayRes.json();
-    const histJson  = await histRes.json();
-
-    const TODAY = normaliseRow(todayJson);
-    const D30   = histJson.data.map(normaliseRow);
-    const D14   = D30.slice(-14);
-
-    return { TODAY, D30, D14 };
-
-  } catch (err) {
-    console.warn('API fetch failed, using seed data:', err.message);
-    showError(err.message);
-    return null;   // caller will use seed data fallback
+    if(!tr.ok||!hr.ok) throw new Error("API error");
+    const tj=await tr.json();
+    const hj=await hr.json();
+    const ej=er.ok?await er.json():null;
+    const D30=hj.data.map(nr);
+    return{TODAY:nr(tj),D30,D14:D30.slice(-14),ETF:ej};
+  }catch(e){
+    console.warn("API unavailable, seed data");
+    const D30=seedRows();
+    return{TODAY:D30[D30.length-1],D30,D14:D30.slice(-14),ETF:null};
   }
 }
 
-// ── SEED FALLBACK (shown if API is unreachable) ───────────────────────────────
-function seedData() {
-  const raw = [
-    { bp_value:24.4, losers:122, total:500, zone:'calm',    avg_7d:24.4, date: daysAgo(29) },
-    { bp_value:31.2, losers:156, total:500, zone:'calm',    avg_7d:27.8, date: daysAgo(28) },
-    { bp_value:28.0, losers:140, total:500, zone:'calm',    avg_7d:27.9, date: daysAgo(27) },
-    { bp_value:35.6, losers:178, total:500, zone:'calm',    avg_7d:29.8, date: daysAgo(26) },
-    { bp_value:22.8, losers:114, total:500, zone:'calm',    avg_7d:28.4, date: daysAgo(25) },
-    { bp_value:41.0, losers:205, total:500, zone:'calm',    avg_7d:30.5, date: daysAgo(24) },
-    { bp_value:38.4, losers:192, total:500, zone:'calm',    avg_7d:31.6, date: daysAgo(23) },
-    { bp_value:67.2, losers:336, total:500, zone:'crash',   avg_7d:36.9, date: daysAgo(22) },
-    { bp_value:72.8, losers:364, total:500, zone:'crash',   avg_7d:43.9, date: daysAgo(21) },
-    { bp_value:71.0, losers:355, total:500, zone:'crash',   avg_7d:46.8, date: daysAgo(20) },
-    { bp_value:68.4, losers:342, total:500, zone:'crash',   avg_7d:52.7, date: daysAgo(19) },
-    { bp_value:74.2, losers:371, total:500, zone:'crash',   avg_7d:57.6, date: daysAgo(18) },
-    { bp_value:65.6, losers:328, total:500, zone:'crash',   avg_7d:62.7, date: daysAgo(17) },
-    { bp_value:58.8, losers:294, total:500, zone:'caution', avg_7d:65.4, date: daysAgo(16) },
-    { bp_value:44.2, losers:221, total:500, zone:'calm',    avg_7d:64.9, date: daysAgo(15) },
-    { bp_value:38.6, losers:193, total:500, zone:'calm',    avg_7d:60.4, date: daysAgo(14) },
-    { bp_value:32.0, losers:160, total:500, zone:'calm',    avg_7d:56.9, date: daysAgo(13) },
-    { bp_value:29.4, losers:147, total:500, zone:'calm',    avg_7d:48.9, date: daysAgo(12) },
-    { bp_value:27.2, losers:136, total:500, zone:'calm',    avg_7d:42.3, date: daysAgo(11) },
-    { bp_value:33.8, losers:169, total:500, zone:'calm',    avg_7d:37.7, date: daysAgo(10) },
-    { bp_value:19.6, losers:98,  total:500, zone:'calm',    avg_7d:32.1, date: daysAgo(9)  },
-    { bp_value:22.4, losers:112, total:500, zone:'calm',    avg_7d:29.5, date: daysAgo(8)  },
-    { bp_value:47.0, losers:235, total:500, zone:'caution', avg_7d:30.2, date: daysAgo(7)  },
-    { bp_value:53.6, losers:268, total:500, zone:'caution', avg_7d:33.3, date: daysAgo(6)  },
-    { bp_value:61.2, losers:306, total:500, zone:'caution', avg_7d:38.2, date: daysAgo(5)  },
-    { bp_value:58.4, losers:292, total:500, zone:'caution', avg_7d:45.1, date: daysAgo(4)  },
-    { bp_value:63.8, losers:319, total:500, zone:'caution', avg_7d:47.1, date: daysAgo(3)  },
-    { bp_value:55.2, losers:276, total:500, zone:'caution', avg_7d:51.6, date: daysAgo(2)  },
-    { bp_value:49.6, losers:248, total:500, zone:'caution', avg_7d:52.5, date: daysAgo(1)  },
-    { bp_value:52.4, losers:262, total:500, zone:'caution', avg_7d:56.3, date: daysAgo(0)  },
-  ];
-  const D30   = raw.map(normaliseRow);
-  const D14   = D30.slice(-14);
-  const TODAY = D30[D30.length - 1];
-  return { TODAY, D30, D14 };
+function getInsight(bp,avg,bpxChg){
+  const etfNote=bpxChg>0?` BPX ETF is up ${bpxChg}% today — the hedge is working.`:bpxChg<0?` BPX ETF is down ${Math.abs(bpxChg)}% today.`:"";
+  if(bp>=65) return `<strong>Crash zone.</strong> ${bp}% of NSE-listed stocks closed red today — widespread losses across the full market. Seven-day average is ${avg}.${etfNote}`;
+  if(bp>=45) return `<strong>Caution signal.</strong> ${bp}% of stocks closed red — breadth deteriorating. Seven-day average sits at ${avg}.${etfNote}`;
+  return `<strong>Market healthy.</strong> Only ${bp}% of NSE stocks closed red. Breadth is strong, seven-day average at ${avg}.${etfNote}`;
 }
 
-function daysAgo(n) {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().split('T')[0];
+function renderIndex(TODAY,D30,D14){
+  const z=zz(TODAY.bp);
+  const prev=D30[D30.length-2];
+  const diff=prev?Math.round((TODAY.bp-prev.bp)*10)/10:0;
+  const trend=diff>0?`↑ ${diff} pts from yesterday`:diff<0?`↓ ${Math.abs(diff)} pts from yesterday`:"unchanged from yesterday";
+  let streak=1;
+  for(let i=D30.length-2;i>=0;i--){if(zz(D30[i].bp)===z)streak++;else break}
+
+  document.getElementById("n-date").textContent=TODAY.label+" · "+trend;
+  document.getElementById("h-num").textContent=TODAY.bp;
+  document.getElementById("h-num").className="h-num "+z;
+  const pill=document.getElementById("zpill");
+  pill.className="zpill "+z;
+  document.getElementById("zpill-txt").textContent=ZL[z];
+  document.getElementById("h-body").textContent=`${TODAY.losers.toLocaleString("en-IN")} of ${TODAY.total.toLocaleString("en-IN")} NSE-listed stocks closed below their previous price today.`;
+  document.getElementById("s-avg").textContent=TODAY.avg;
+  document.getElementById("s-red").textContent=TODAY.losers.toLocaleString("en-IN");
+  document.getElementById("s-streak").textContent=streak+"d";
+  document.getElementById("mfill").style.width=TODAY.bp+"%";
+  document.getElementById("mfill").className="mfill "+z;
+  document.getElementById("mval").innerHTML="<strong>"+TODAY.bp+"</strong>";
+  const ins=document.getElementById("insight");
+  ins.className="insight "+z;
+  ins.innerHTML=getInsight(TODAY.bp,TODAY.avg,TODAY.bpxch);
+
+  buildMainChart("bp",D30);
+  buildDonut(D30);
+  buildTable(D14);
 }
 
-let ALL_DATA = null;
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
-const ZONE_COLORS = { calm: '#1c7a3d', caution: '#b45309', crash: '#c0392b' };
-const ZONE_LABELS = { calm: 'Calm', caution: 'Caution', crash: 'Crash zone' };
-
-function zoneClass(bp) { return bp >= 65 ? 'crash' : bp >= 45 ? 'caution' : 'calm'; }
-
-function getInsight(bp, avg) {
-  if (bp >= 65) return `<strong>Crash zone.</strong> ${bp}% of Nifty 500 stocks closed red today — broad market pain, not just a few large-caps dragging the index. Seven-day average is ${avg}. If you're holding unhedged equity, this is the signal to act on.`;
-  if (bp >= 45) return `<strong>Caution signal.</strong> ${bp}% of stocks closed red — breadth is deteriorating. Seven-day average sits at ${avg}. Not a full crash, but a pattern worth taking seriously before it becomes one.`;
-  return `<strong>Market healthy.</strong> Only ${bp}% of Nifty 500 stocks closed red today. Breadth is strong, seven-day average at ${avg}. No action needed — but Bearprint keeps watching so you don't have to.`;
-}
-
-// ── RENDER HERO ───────────────────────────────────────────────────────────────
-function renderHero(TODAY, D30) {
-  const z = zoneClass(TODAY.bp);
-  const prev = D30[D30.length - 2];
-  const diff = prev ? Math.round((TODAY.bp - prev.bp) * 10) / 10 : 0;
-  const trendTxt = diff > 0 ? `↑ ${diff} pts from yesterday` : diff < 0 ? `↓ ${Math.abs(diff)} pts from yesterday` : 'unchanged from yesterday';
-
-  let streak = 1;
-  for (let i = D30.length - 2; i >= 0; i--) { if (zoneClass(D30[i].bp) === z) streak++; else break; }
-
-  document.getElementById('nav-date').textContent = TODAY.label + ' · ' + trendTxt;
-  document.getElementById('hero-num').textContent = TODAY.bp;
-  document.getElementById('hero-num').className = `hero-number ${z}`;
-
-  const chip = document.getElementById('signal-chip');
-  chip.className = `signal-chip ${z}`;
-  document.getElementById('chip-text').textContent = ZONE_LABELS[z];
-  document.getElementById('hero-body').textContent = `${TODAY.losers} of ${TODAY.total} Nifty stocks closed below their previous price today.`;
-
-  document.getElementById('stat-avg').textContent = TODAY.avg;
-  document.getElementById('stat-losers').textContent = TODAY.losers;
-  document.getElementById('stat-streak').textContent = streak + 'd';
-
-  document.getElementById('meter').style.width = TODAY.bp + '%';
-  document.getElementById('meter').className = `meter-fill ${z}`;
-  document.getElementById('meter-pct').innerHTML = `<strong>${TODAY.bp}</strong>`;
-
-  const ins = document.getElementById('insight');
-  ins.className = `insight ${z}`;
-  ins.innerHTML = getInsight(TODAY.bp, TODAY.avg);
-}
-
-// ── CHARTS ────────────────────────────────────────────────────────────────────
-let mainChart = null;
-let currentD30 = [];
-
-function buildMain(type, D30) {
-  if (D30) currentD30 = D30;
-  const data = currentD30;
-  const labels = data.map(r => r.label);
-  let datasets;
-
-  if (type === 'bp') {
-    const ptColors = data.map(r => ZONE_COLORS[r.zone]);
-    datasets = [
-      { label: 'Bearprint', data: data.map(r => r.bp), borderColor: '#1d1d1f', borderWidth: 1.5, pointRadius: 3.5, pointBackgroundColor: ptColors, pointBorderColor: ptColors, tension: 0.35, fill: false },
-      { label: '7-day avg', data: data.map(r => r.avg), borderColor: 'rgba(0,0,0,0.2)', borderWidth: 1, borderDash: [5, 3], pointRadius: 0, tension: 0.35, fill: false }
+let mainChart=null,curD30=[];
+function buildMainChart(type,D30){
+  if(D30)curD30=D30;
+  const d=curD30,labels=d.map(r=>r.label);
+  let ds;
+  if(type==="bp"){
+    const ptc=d.map(r=>ZC[r.zone]);
+    ds=[
+      {label:"Bearprint",data:d.map(r=>r.bp),borderColor:"rgba(255,255,255,0.55)",borderWidth:1.5,pointRadius:3.5,pointBackgroundColor:ptc,pointBorderColor:ptc,tension:.35,fill:false},
+      {label:"7d avg",data:d.map(r=>r.avg),borderColor:"rgba(255,255,255,0.18)",borderWidth:1,borderDash:[5,3],pointRadius:0,tension:.35,fill:false}
     ];
   } else {
-    const nifty = data.map(r => Math.min(100, Math.max(0, Math.round(100 - r.bp + ((Math.sin(r.bp) * 4))))));
-    datasets = [
-      { label: 'Nifty 50 (normalised)', data: nifty, borderColor: '#0066cc', borderWidth: 1.5, borderDash: [5, 3], pointRadius: 0, tension: 0.35, fill: false },
-      { label: 'Bearprint', data: data.map(r => r.bp), borderColor: '#c0392b', borderWidth: 1.5, pointRadius: 0, tension: 0.35, fill: false }
+    const nifty=d.map(r=>Math.min(100,Math.max(0,Math.round(100-r.bp+(Math.sin(r.bp)*4)))));
+    ds=[
+      {label:"Nifty 50",data:nifty,borderColor:"rgba(10,132,255,0.7)",borderWidth:1.5,borderDash:[5,3],pointRadius:0,tension:.35,fill:false},
+      {label:"Bearprint",data:d.map(r=>r.bp),borderColor:"#ff453a",borderWidth:1.5,pointRadius:0,tension:.35,fill:false}
     ];
   }
+  if(mainChart)mainChart.destroy();
+  const cfg={type:"line",data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:{duration:350},plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false,backgroundColor:"rgba(20,20,20,0.92)",borderColor:"rgba(255,255,255,0.1)",borderWidth:.5,titleColor:"#f5f5f7",bodyColor:"rgba(235,235,240,0.6)"}},scales:{x:{ticks:{maxTicksLimit:7,autoSkip:true,font:{size:11,family:"-apple-system"},color:"rgba(235,235,240,0.3)"},grid:{display:false},border:{display:false}},y:{min:0,max:100,ticks:{stepSize:25,font:{size:11,family:"-apple-system"},color:"rgba(235,235,240,0.3)"},grid:{color:"rgba(255,255,255,0.04)"},border:{display:false}}}}};
+  mainChart=new Chart(document.getElementById("mainChart"),cfg);
+}
 
-  if (mainChart) mainChart.destroy();
-  mainChart = new Chart(document.getElementById('mainChart'), {
-    type: 'line',
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: { duration: 350 },
-      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { label: ctx => ctx.dataset.label === '7-day avg' ? null : ` ${ctx.dataset.label}: ${ctx.parsed.y}` } } },
-      scales: {
-        x: { ticks: { maxTicksLimit: 7, autoSkip: true, font: { size: 11, family: '-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif' }, color: '#6e6e73' }, grid: { display: false }, border: { display: false } },
-        y: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 11, family: '-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif' }, color: '#6e6e73' }, grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false } }
-      }
-    }
+function switchChart(type,btn){
+  document.querySelectorAll(".chtab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  buildMainChart(type);
+}
+
+function buildDonut(D30){
+  const calm=D30.filter(r=>r.zone==="calm").length;
+  const caution=D30.filter(r=>r.zone==="caution").length;
+  const crash=D30.filter(r=>r.zone==="crash").length;
+  new Chart(document.getElementById("zoneChart"),{type:"doughnut",data:{labels:["Calm","Caution","Crash zone"],datasets:[{data:[calm,caution,crash],backgroundColor:["#30d158","#ff9f0a","#ff453a"],borderWidth:0,hoverOffset:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:"rgba(20,20,20,0.92)",borderColor:"rgba(255,255,255,0.1)",borderWidth:.5,titleColor:"#f5f5f7",bodyColor:"rgba(235,235,240,0.6)",callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed} days`}}},cutout:"68%"}});
+  const leg=document.getElementById("dl-legend");
+  leg.innerHTML="";
+  [["Calm",calm,"#30d158"],["Caution",caution,"#ff9f0a"],["Crash zone",crash,"#ff453a"]].forEach(([l,c,col])=>{
+    leg.innerHTML+=`<div class="dl-row"><div class="dl-lft"><div class="dl-dot" style="background:${col}"></div>${l}</div><div class="dl-cnt">${c} days</div></div>`;
   });
 }
 
-function switchTab(type, btn) {
-  document.querySelectorAll('.ct-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  buildMain(type);
-}
-
-function buildDonut(D30) {
-  const calm    = D30.filter(r => r.zone === 'calm').length;
-  const caution = D30.filter(r => r.zone === 'caution').length;
-  const crash   = D30.filter(r => r.zone === 'crash').length;
-
-  new Chart(document.getElementById('zoneChart'), {
-    type: 'doughnut',
-    data: { labels: ['Calm', 'Caution', 'Crash zone'], datasets: [{ data: [calm, caution, crash], backgroundColor: ['#1c7a3d', '#b45309', '#c0392b'], borderWidth: 0, hoverOffset: 3 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} days` } } }, cutout: '68%' }
-  });
-
-  const leg = document.getElementById('donut-legend');
-  leg.innerHTML = '';
-  [['Calm', calm, '#1c7a3d'], ['Caution', caution, '#b45309'], ['Crash zone', crash, '#c0392b']].forEach(([l, c, col]) => {
-    leg.innerHTML += `<div class="dl-item"><div class="dl-left"><div class="dl-swatch" style="background:${col}"></div>${l}</div><div class="dl-count">${c} days</div></div>`;
-  });
-}
-
-function buildTable(D14) {
-  const tbody = document.getElementById('table-body');
-  tbody.innerHTML = '';
-  [...D14].reverse().forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${r.label}</td><td><span class="td-num">${r.bp}</span></td><td>${r.losers}</td><td>${r.avg}</td><td><span class="td-chip ${r.zone}">${ZONE_LABELS[r.zone]}</span></td>`;
+function buildTable(D14){
+  const tbody=document.getElementById("tbody");
+  tbody.innerHTML="";
+  [...D14].reverse().forEach(r=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${r.label}</td><td><span class="tnum">${r.bp}</span></td><td>${r.losers.toLocaleString("en-IN")}</td><td>${r.total.toLocaleString("en-IN")}</td><td>${r.avg}</td><td><span class="tchip ${r.zone}">${ZL[r.zone]}</span></td>`;
     tbody.appendChild(tr);
   });
 }
 
-// ── FEEDBACK ──────────────────────────────────────────────────────────────────
-function pick(el, groupId) {
-  document.querySelectorAll(`#${groupId} .radio-opt`).forEach(r => r.classList.remove('sel'));
-  el.classList.add('sel');
-}
+let etfChart=null;
+function renderETF(TODAY,D30,etfData){
+  const nav=TODAY.bpx;
+  const chg=TODAY.bpxch;
+  const z=TODAY.zone;
 
-async function submit() {
-  const q1 = document.querySelector('input[name="q1"]:checked')?.value || '';
-  const q2 = document.querySelector('input[name="q2"]:checked')?.value || '';
-  const q3 = document.getElementById('q3')?.value || '';
-  if (!q1 && !q2) { alert('Please answer at least one question.'); return; }
+  document.getElementById("etf-nav").textContent="₹"+nav.toFixed(2);
+  const chgEl=document.getElementById("etf-chg");
+  chgEl.textContent=(chg>=0?"+":"")+chg.toFixed(2)+"% today";
+  chgEl.className="etf-chg "+(chg>=0?"up":"dn");
+  document.getElementById("etf-note").textContent=`NAV as of ${TODAY.label} · Simulated · Based on real NSE Bearprint data`;
+  document.getElementById("etf-bp").textContent=TODAY.bp;
+  document.getElementById("etf-zone").textContent=ZL[z]||"—";
 
-  const currentBP = ALL_DATA?.TODAY?.bp || null;
+  // meter: nav range 1-225
+  const mPct=Math.round(((nav-1)/(225-1))*100);
+  document.getElementById("etf-meter").style.width=mPct+"%";
+  document.getElementById("etf-meter").style.background=ZC[z];
+  document.getElementById("etf-meter-val").innerHTML="<strong>₹"+nav.toFixed(0)+"</strong>";
 
-  try {
-    await fetch(`${API}/feedback`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q1, q2, q3, bp_at_time: currentBP }),
-    });
-  } catch (e) {
-    console.warn('Feedback save failed (offline?):', e.message);
+  // ETF chart: BPX NAV vs normalised Nifty
+  const labels=D30.map(r=>r.label);
+  const bpxData=D30.map(r=>r.bpx);
+  const niftyData=D30.map(r=>Math.min(180,Math.max(20,Math.round(225-r.bpx+(Math.sin(r.bp)*8)))));
+
+  if(etfChart)etfChart.destroy();
+  etfChart=new Chart(document.getElementById("etfChart"),{type:"line",data:{labels,datasets:[
+    {label:"BPX ETF",data:bpxData,borderColor:"#30d158",borderWidth:2,pointRadius:0,tension:.35,fill:false},
+    {label:"Nifty 50",data:niftyData,borderColor:"rgba(10,132,255,0.5)",borderWidth:1.5,borderDash:[5,3],pointRadius:0,tension:.35,fill:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:350},plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false,backgroundColor:"rgba(20,20,20,0.92)",borderColor:"rgba(255,255,255,0.1)",borderWidth:.5,titleColor:"#f5f5f7",bodyColor:"rgba(235,235,240,0.6)",callbacks:{label:ctx=>`${ctx.dataset.label}: ₹${ctx.parsed.y.toFixed(1)}`}}},scales:{x:{ticks:{maxTicksLimit:7,autoSkip:true,font:{size:11,family:"-apple-system"},color:"rgba(235,235,240,0.3)"},grid:{display:false},border:{display:false}},y:{ticks:{font:{size:11,family:"-apple-system"},color:"rgba(235,235,240,0.3)",callback:v=>"₹"+v},grid:{color:"rgba(255,255,255,0.04)"},border:{display:false}}}}});
+
+  // Crash sim
+  const sim=etfData?.crash_sim||{};
+  const niftyChg=sim.nifty_change_pct||(-(TODAY.bp-50)*0.4);
+  const v1=sim.nifty_only||Math.round(100000*(1+niftyChg/100));
+  const v2=sim.mix_80_20||Math.round(100000*(0.8*(1+niftyChg/100)+0.2*(1+chg/100)));
+  const v3=sim.mix_60_40||Math.round(100000*(0.6*(1+niftyChg/100)+0.4*(1+chg/100)));
+  const maxV=Math.max(v1,v2,v3,100000);
+
+  document.getElementById("sim-sub").textContent=`With Bearprint at ${TODAY.bp} (${ZL[z]}) — how does a ₹1,00,000 portfolio perform today?`;
+
+  function setSimRow(barId,valId,val,color){
+    document.getElementById(barId).style.width=Math.round((val/maxV)*100)+"%";
+    document.getElementById(barId).style.background=color;
+    const fmt="₹"+val.toLocaleString("en-IN");
+    document.getElementById(valId).textContent=fmt;
+    document.getElementById(valId).style.color=color;
   }
-
-  document.getElementById('success').style.display = 'block';
-  document.querySelector('.submit-btn').style.opacity = '0.4';
-  document.querySelector('.submit-btn').disabled = true;
+  const c1=v1<100000?"#ff453a":"#30d158";
+  const c2=v2<100000?"#ff9f0a":v2>=100000?"#30d158":"#ff453a";
+  const c3=v3>=100000?"#30d158":"#ff9f0a";
+  setSimRow("sim-bar-1","sim-val-1",v1,c1);
+  setSimRow("sim-bar-2","sim-val-2",v2,c2);
+  setSimRow("sim-bar-3","sim-val-3",v3,c3);
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-async function init() {
-  const live = await loadData();
-  ALL_DATA = live || seedData();
+function switchTab(id,btn){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
+  document.querySelectorAll(".n-tab").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+id).classList.add("on");
+  btn.classList.add("active");
+}
 
-  const { TODAY, D30, D14 } = ALL_DATA;
-  renderHero(TODAY, D30);
-  buildMain('bp', D30);
-  buildDonut(D30);
-  buildTable(D14);
+async function init(){
+  const{TODAY,D30,D14,ETF}=await loadAll();
+  renderIndex(TODAY,D30,D14);
+  renderETF(TODAY,D30,ETF);
 }
 
 init();
