@@ -408,7 +408,9 @@ async function loadAll(){
     const mj=mr.ok?await mr.json():null;
     const D30=hj.data.map(nr);
     ALL_D30=D30;
-    if(mj?.months) buildMonthBtns(mj.months);
+    // Build month buttons from actual data
+    const months=[...new Set(D30.map(r=>r.date.slice(0,7)))].sort();
+    buildMonthBtns(months);
     return{TODAY:nr(tj),D30,D14:D30.slice(-14),ETF:ej};
   }catch(e){
     console.warn("API unavailable, seed data");
@@ -453,15 +455,15 @@ function renderIndex(TODAY,D30,D14){
   ins.className="insight "+z;
   ins.innerHTML=getInsight(TODAY.bp,TODAY.avg,TODAY.bpxch);
 
-  buildMainChart("bp",D30.slice(-30));
-  buildDonut(D30.slice(-30));
+  setPeriod('1m', document.querySelector('.chtab.active'));
+  buildDonut(ALL_D30.slice(-30));
   buildTable(D14);
 }
 
-let mainChart=null,curD30=[];
+let mainChart=null,curD30=[],ALL_D30_FULL=[];
 function buildMainChart(type,D30){
   if(D30)curD30=D30;
-  const d=type==="bp"?curD30.slice(-curWindow):curD30,labels=d.map(r=>r.label);
+  const d=curD30,labels=d.map(r=>r.label);
   let ds;
   if(type==="bp"){
     const ptc=d.map(r=>ZC[r.zone]);
@@ -483,16 +485,15 @@ function buildMainChart(type,D30){
 
 function setPeriod(period, btn){
   document.querySelectorAll(".chtab").forEach(b=>b.classList.remove("active"));
-  if(btn) btn.classList.add("active");
-  // clear month selection
   document.querySelectorAll(".mth-btn").forEach(b=>b.classList.remove("active"));
-  const now = new Date();
+  if(btn) btn.classList.add("active");
   let filtered;
   if(period==="1m") filtered=ALL_D30.slice(-22);
   else if(period==="3m") filtered=ALL_D30.slice(-66);
-  else filtered=ALL_D30; // 6m = all
+  else filtered=ALL_D30;
   curD30=filtered;
   buildMainChart("bp");
+  buildDonut(filtered);
 }
 
 function setMonth(ym, btn){
@@ -502,6 +503,7 @@ function setMonth(ym, btn){
   const filtered=ALL_D30.filter(r=>r.date.startsWith(ym));
   curD30=filtered.length>0?filtered:ALL_D30.slice(-22);
   buildMainChart("bp");
+  buildDonut(curD30);
 }
 
 function buildMonthBtns(months){
