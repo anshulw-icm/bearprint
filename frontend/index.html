@@ -250,31 +250,65 @@ footer{border-top:0.5px solid var(--bdr);padding:20px;text-align:center;font-siz
 
     <div class="insight caution" id="insight">Loading live data...</div>
 
-    <div class="grid2">
-      <div class="card cp">
-        <div class="cctrl">
-          <div>
-            <div class="chtabs" style="margin-bottom:8px">
-              <button class="chtab active" id="btn-1m" onclick="setPeriod('1m',this)">1M</button>
-              <button class="chtab" id="btn-3m" onclick="setPeriod('3m',this)">3M</button>
-              <button class="chtab" id="btn-6m" onclick="setPeriod('6m',this)">6M</button>
-              <button class="chtab" id="btn-ov" onclick="switchOverlay(this)">vs Nifty</button>
-            </div>
-            <div class="mpills" id="mpills"></div>
+    <!-- FULL WIDTH CHART -->
+    <div class="card cp" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div class="chtabs" style="margin-bottom:8px">
+            <button class="chtab active" id="btn-1m" onclick="setPeriod('1m',this)">1M</button>
+            <button class="chtab" id="btn-3m" onclick="setPeriod('3m',this)">3M</button>
+            <button class="chtab" id="btn-6m" onclick="setPeriod('6m',this)">6M</button>
+            <button class="chtab" id="btn-ov" onclick="switchOverlay(this)">vs Nifty</button>
           </div>
+          <div class="mpills" id="mpills"></div>
         </div>
-        <div class="chwrap">
-          <canvas id="mainChart" role="img" aria-label="Bearprint trend"></canvas>
-          <div class="chart-loading" id="chart-loading"><div class="spinner"></div></div>
+        <div style="display:flex;align-items:center;gap:14px;font-size:11px;color:var(--ink4)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:2px;background:var(--green);display:inline-block;border-radius:1px"></span>Calm</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:2px;background:var(--amber);display:inline-block;border-radius:1px"></span>Caution</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:2px;background:var(--red);display:inline-block;border-radius:1px"></span>Crash</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;border-top:1.5px dashed var(--ink4);display:inline-block"></span>7d avg</span>
         </div>
       </div>
+      <div style="position:relative;width:100%;height:320px">
+        <canvas id="mainChart" role="img" aria-label="Bearprint trend"></canvas>
+        <div class="chart-loading" id="chart-loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ZONE + MINI STATS ROW -->
+    <div class="grid2">
       <div class="card cp">
         <p class="ttl" style="margin-bottom:12px" id="donut-ttl">Zone breakdown</p>
-        <div class="chwrap" style="height:160px">
+        <div style="position:relative;width:100%;height:160px">
           <canvas id="zoneChart"></canvas>
           <div class="chart-loading" id="donut-loading"><div class="spinner"></div></div>
         </div>
         <div class="dl-wrap" id="dl-legend"></div>
+      </div>
+      <div class="card cp" style="display:flex;flex-direction:column;justify-content:space-between">
+        <p class="ttl" style="margin-bottom:14px">6-month highlights</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--bdr)">
+            <span style="font-size:12px;color:var(--ink3)">Highest Bearprint</span>
+            <span style="font-size:14px;font-weight:600;color:var(--red)" id="hl-high">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--bdr)">
+            <span style="font-size:12px;color:var(--ink3)">Lowest Bearprint</span>
+            <span style="font-size:14px;font-weight:600;color:var(--green)" id="hl-low">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--bdr)">
+            <span style="font-size:12px;color:var(--ink3)">Average Bearprint</span>
+            <span style="font-size:14px;font-weight:600;color:var(--ink)" id="hl-avg">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--bdr)">
+            <span style="font-size:12px;color:var(--ink3)">Crash zone days</span>
+            <span style="font-size:14px;font-weight:600;color:var(--red)" id="hl-crash">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+            <span style="font-size:12px;color:var(--ink3)">Calm days</span>
+            <span style="font-size:14px;font-weight:600;color:var(--green)" id="hl-calm">—</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -702,6 +736,22 @@ function renderETF(T){
   sr('sb1','sv1',v1);sr('sb2','sv2',v2);sr('sb3','sv3',v3);
 }
 
+// ── HIGHLIGHTS ───────────────────────────────────────────────────────────────
+function buildHighlights(){
+  if(!ALL.length) return;
+  const bps=ALL.map(r=>r.bp);
+  const high=Math.max(...bps);
+  const low=Math.min(...bps);
+  const avg=Math.round(bps.reduce((a,b)=>a+b,0)/bps.length*10)/10;
+  const crash=ALL.filter(r=>r.zone==='crash').length;
+  const calm=ALL.filter(r=>r.zone==='calm').length;
+  document.getElementById('hl-high').textContent=high;
+  document.getElementById('hl-low').textContent=low;
+  document.getElementById('hl-avg').textContent=avg;
+  document.getElementById('hl-crash').textContent=crash+' days';
+  document.getElementById('hl-calm').textContent=calm+' days';
+}
+
 // ── MODAL ─────────────────────────────────────────────────────────────────────
 function openBuy(){document.getElementById('buy-overlay').classList.add('open');document.body.style.overflow='hidden'}
 function closeBuy(){document.getElementById('buy-overlay').classList.remove('open');document.body.style.overflow=''}
@@ -725,6 +775,7 @@ async function init(){
   }
   renderHero(T);
   buildMonthPills();
+  buildHighlights();
   // Build chart with 1M default AFTER data is ready
   const d1m=ALL.slice(-22);
   buildChart(d1m);
