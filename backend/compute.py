@@ -28,6 +28,9 @@ def fetch_bhavcopy(trade_date: date):
     url = f"https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date_fmt}.csv"
     print(f"Fetching: {url}")
     r = requests.get(url, headers=NSE_HEADERS, timeout=30)
+    if r.status_code == 404:
+        print(f"  Bhavcopy not yet available for {trade_date} — market may still be open or holiday.")
+        return None
     r.raise_for_status()
     rows = list(csv.DictReader(io.StringIO(r.text)))
     rows = [{k.strip(): v.strip() for k, v in row.items()} for row in rows]
@@ -51,7 +54,6 @@ def compute_bearprint(rows):
             continue
     bp = round((losers / total) * 100, 2) if total > 0 else 0.0
     zone = "crash" if bp >= 65 else "caution" if bp >= 45 else "calm"
-    # BPX NAV: base 100, scales with bp. At bp=50 NAV=100, at bp=100 NAV=225, at bp=0 NAV=0 (floor at 1)
     bpx_nav = round(max(1.0, 100 + (bp - 50) * 2.5), 2)
     print(f"  BP={bp} losers={losers}/{total} zone={zone} BPX_NAV={bpx_nav}")
     return {"bp_value": bp, "losers": losers, "total": total, "zone": zone, "bpx_nav": bpx_nav}
@@ -84,6 +86,9 @@ def run(trade_date: date = None):
     trade_date = trade_date or date.today()
     print(f"\n=== Bearprint compute: {trade_date} ===")
     rows = fetch_bhavcopy(trade_date)
+    if rows is None:
+        print(f"  Skipping — no data available for {trade_date}. Will retry tomorrow.")
+        return
     result = compute_bearprint(rows)
     prev_nav = compute_bpx_prev_nav(trade_date)
     bpx_change = round(((result["bpx_nav"] - prev_nav) / prev_nav) * 100, 2) if prev_nav else 0.0
