@@ -629,12 +629,16 @@ function buildChart(data){
     const zplugin={
       id:'zb',
       beforeDraw(chart){
-        const{ctx,chartArea:{top,bottom},scales:{x}}=chart;
+        const{ctx,chartArea:{top,bottom,left,right},scales:{x}}=chart;
         ctx.save();
-        for(let i=0;i<data.length-1;i++){
-          const x0=x.getPixelForIndex(i),x1=x.getPixelForIndex(i+1);
+        const total=data.length;
+        if(total<2){ctx.restore();return;}
+        const width=(right-left)/total;
+        for(let i=0;i<total;i++){
+          const x0=left+i*width;
+          const x1=x0+width;
           const z=data[i].zone;
-          ctx.fillStyle=z==='crash'?'rgba(231,76,60,0.05)':z==='caution'?'rgba(245,166,35,0.04)':'rgba(52,199,89,0.04)';
+          ctx.fillStyle=z==='crash'?'rgba(231,76,60,0.06)':z==='caution'?'rgba(245,166,35,0.05)':'rgba(52,199,89,0.04)';
           ctx.fillRect(x0,top,x1-x0,bottom-top);
         }
         ctx.restore();
