@@ -51,8 +51,10 @@ def compute_bearprint(rows):
             continue
     bp = round((losers / total) * 100, 2) if total > 0 else 0.0
     zone = "crash" if bp >= 65 else "caution" if bp >= 45 else "calm"
-    print(f"  BP={bp} losers={losers}/{total} zone={zone}")
-    return {"bp_value": bp, "losers": losers, "total": total, "zone": zone}
+    # BPX NAV: base 100, scales with bp. At bp=50 NAV=100, at bp=100 NAV=225, at bp=0 NAV=0 (floor at 1)
+    bpx_nav = round(max(1.0, 100 + (bp - 50) * 2.5), 2)
+    print(f"  BP={bp} losers={losers}/{total} zone={zone} BPX_NAV={bpx_nav}")
+    return {"bp_value": bp, "losers": losers, "total": total, "zone": zone, "bpx_nav": bpx_nav}
 
 def compute_avg7d(trade_date: date):
     since = (trade_date - timedelta(days=10)).isoformat()
@@ -66,17 +68,34 @@ def compute_avg7d(trade_date: date):
         return 0.0
     return round(sum(r["bp_value"] for r in rows) / len(rows), 2)
 
+def compute_bpx_prev_nav(trade_date: date):
+    yesterday = (trade_date - timedelta(days=1)).isoformat()
+    rows = db("GET", "bearprint_daily", params={
+        "select": "bpx_nav",
+        "date": f"lte.{yesterday}",
+        "order": "date.desc",
+        "limit": "1"
+    }).json()
+    if not rows or not isinstance(rows, list) or not rows[0].get("bpx_nav"):
+        return 100.0
+    return float(rows[0]["bpx_nav"])
+
 def run(trade_date: date = None):
     trade_date = trade_date or date.today()
     print(f"\n=== Bearprint compute: {trade_date} ===")
     rows = fetch_bhavcopy(trade_date)
     result = compute_bearprint(rows)
+    prev_nav = compute_bpx_prev_nav(trade_date)
+    bpx_change = round(((result["bpx_nav"] - prev_nav) / prev_nav) * 100, 2) if prev_nav else 0.0
     db("POST", "bearprint_daily", json={
-        "date": trade_date.isoformat(), **result, "avg_7d": 0.0
+        "date": trade_date.isoformat(),
+        **result,
+        "avg_7d": 0.0,
+        "bpx_change": bpx_change,
     })
     avg7d = compute_avg7d(trade_date)
     db("PATCH", f"bearprint_daily?date=eq.{trade_date.isoformat()}", json={"avg_7d": avg7d})
-    print(f"  avg_7d={avg7d}")
+    print(f"  avg_7d={avg7d} bpx_change={bpx_change}%")
     print("=== Done ===\n")
 
 if __name__ == "__main__":

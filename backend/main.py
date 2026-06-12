@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-app = FastAPI(title="Bearprint API", version="0.1.0")
+app = FastAPI(title="Bearprint API", version="0.2.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET","POST"], allow_headers=["*"])
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -35,7 +35,7 @@ class FeedbackPayload(BaseModel):
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "Bearprint API v0.1"}
+    return {"status": "ok", "service": "Bearprint API v0.2"}
 
 @app.get("/health")
 def health():
@@ -43,9 +43,13 @@ def health():
 
 @app.get("/today")
 def get_today():
-    rows = db_get("bearprint_daily", {"select": "*", "order": "date.desc", "limit": "1"})
+    rows = db_get("bearprint_daily", {
+        "select": "*",
+        "order": "date.desc",
+        "limit": "1"
+    })
     if not rows or not isinstance(rows, list):
-        raise HTTPException(status_code=404, detail="No data yet. Run the compute script first.")
+        raise HTTPException(status_code=404, detail="No data yet.")
     return rows[0]
 
 @app.get("/history")
@@ -60,6 +64,59 @@ def get_history(days: int = 30):
     if not isinstance(rows, list):
         return {"days": 0, "data": []}
     return {"days": len(rows), "data": rows}
+
+@app.get("/etf/today")
+def get_etf_today():
+    """Returns today's BPX ETF NAV and performance metrics."""
+    rows = db_get("bearprint_daily", {
+        "select": "*",
+        "order": "date.desc",
+        "limit": "1"
+    })
+    if not rows or not isinstance(rows, list):
+        raise HTTPException(status_code=404, detail="No data yet.")
+    today = rows[0]
+
+    # Get 30 days for crash simulation
+    history = db_get("bearprint_daily", {
+        "select": "date,bp_value,bpx_nav,zone",
+        "order": "date.desc",
+        "limit": "30"
+    })
+    if not isinstance(history, list):
+        history = []
+
+    bp = float(today.get("bp_value", 50))
+    bpx_nav = float(today.get("bpx_nav", 100))
+    bpx_change = float(today.get("bpx_change", 0))
+
+    # Crash simulation: ₹1L invested, how does portfolio perform today
+    nifty_change = round(-(bp - 50) * 0.4, 2)  # rough inverse of breadth
+    sim_nifty_only      = round(100000 * (1 + nifty_change/100), 0)
+    sim_80_20           = round(100000 * (0.8 * (1 + nifty_change/100) + 0.2 * (1 + bpx_change/100)), 0)
+    sim_60_40           = round(100000 * (0.6 * (1 + nifty_change/100) + 0.4 * (1 + bpx_change/100)), 0)
+
+    return {
+        "ticker": "BPX",
+        "name": "Bearprint Inverse Index ETF",
+        "date": today["date"],
+        "nav": bpx_nav,
+        "change_pct": bpx_change,
+        "bp_value": bp,
+        "zone": today.get("zone"),
+        "base_nav": 100.0,
+        "formula": "NAV = max(1, 100 + (bearprint - 50) × 2.5)",
+        "crash_sim": {
+            "invested": 100000,
+            "currency": "INR",
+            "nifty_change_pct": nifty_change,
+            "nifty_only": int(sim_nifty_only),
+            "mix_80_20": int(sim_80_20),
+            "mix_60_40": int(sim_60_40),
+        },
+        "history": list(reversed(history)),
+        "disclaimer": "BPX is a simulated ETF for research purposes. Not a real financial instrument. Not financial advice.",
+    }
 
 @app.post("/feedback")
 def post_feedback(payload: FeedbackPayload, request: Request):
