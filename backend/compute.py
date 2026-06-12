@@ -31,10 +31,6 @@ def fetch_bhavcopy(trade_date: date):
     if r.status_code == 404:
         print(f"  Bhavcopy not yet available for {trade_date} — market may still be open or holiday.")
         return None
-    if r.status_code == 404:
-        print(f"  Bhavcopy not available for {trade_date} — market still open or holiday.")
-        return None
-    r.raise_for_status()
     rows = list(csv.DictReader(io.StringIO(r.text)))
     rows = [{k.strip(): v.strip() for k, v in row.items()} for row in rows]
     print(f"  Loaded {len(rows)} rows")
